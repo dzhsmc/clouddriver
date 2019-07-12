@@ -1,0 +1,12 @@
+repositories {
+  maven { url "https://adxsnapshots.azurewebsites.net" }
+}
+
+dependencies {
+  compile project(":clouddriver-core")
+  compile spinnaker.dependency('frigga')
+  compile spinnaker.dependency('bootActuator')
+  compile spinnaker.dependency('bootWeb')
+  compile 'com.microsoft.azure:adal4j:1.6.3'
+  compile 'com.microsoft.azure:azure:1.19.0'
+}

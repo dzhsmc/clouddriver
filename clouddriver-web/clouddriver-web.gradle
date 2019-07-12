@@ -1,0 +1,48 @@
+apply plugin: 'spinnaker.application'
+
+if (gradle.includedCloudProviderProjects.contains(':clouddriver-oracle')) {
+  tasks.startScripts.dependsOn(':clouddriver-oracle:unpackSdk')
+  tasks.startScripts.mustRunAfter(':clouddriver-oracle:unpackSdk')
+}
+
+ext {
+  springConfigLocation = System.getProperty('spring.config.location', "${System.getProperty('user.home')}/.spinnaker/")
+}
+
+mainClassName = 'com.netflix.spinnaker.clouddriver.Main'
+run {
+  systemProperty('spring.config.location', project.springConfigLocation)
+}
+
+configurations.all {
+  exclude group: 'javax.servlet', module: 'servlet-api'
+  exclude group: "org.slf4j", module: "slf4j-log4j12"
+}
+
+repositories {
+  maven { url "https://adxsnapshots.azurewebsites.net" }
+}
+
+dependencies {
+  compile project(':clouddriver-core')
+  compile project(':clouddriver-security')
+  compile project(':clouddriver-artifacts')
+
+  runtime spinnaker.dependency('kork')
+  compile spinnaker.dependency('korkWeb')
+  compile spinnaker.dependency('korkStackdriver')
+  compile spinnaker.dependency('korkSwagger')
+  compile spinnaker.dependency('bootActuator')
+  compile spinnaker.dependency('bootDataRest')
+  testCompile spinnaker.dependency('bootTest')
+  //this brings in the jetty GzipFilter which boot will autoconfigure
+  runtime 'org.eclipse.jetty:jetty-servlets:9.2.11.v20150529'
+
+  testCompile project(':clouddriver-elasticsearch')
+
+  // Add each included cloud provider project as a runtime dependency
+  gradle.includedCloudProviderProjects.each {
+    runtime project(":${it}")
+  }
+}
+

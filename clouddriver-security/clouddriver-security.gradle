@@ -1,0 +1,12 @@
+dependencies {
+  spinnaker.group('jackson')
+
+  compile spinnaker.dependency('kork')
+  compile spinnaker.dependency('slf4j')
+  compile project(':cats:cats-core')
+
+  compile spinnaker.dependency('fiat')
+  compile spinnaker.dependency('frigga')
+
+  testCompile project(':cats:cats-test')
+}
