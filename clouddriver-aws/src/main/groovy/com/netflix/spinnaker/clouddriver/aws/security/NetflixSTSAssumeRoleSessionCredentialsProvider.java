@@ -27,6 +27,7 @@ public class NetflixSTSAssumeRoleSessionCredentialsProvider extends STSAssumeRol
                                                         String roleSessionName,
                                                         String accountId) {
     super(longLivedCredentialsProvider, roleArn, roleSessionName);
+	this.setSTSClientEndpoint("sts.cn-north-1.amazonaws.com.cn");
     this.accountId = accountId;
 
     /**
