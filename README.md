@@ -26,11 +26,17 @@ modified as needed in `build.gradle`.
 修复了spinnaker对接AWS中国区不可用的几个问题
 
 问题1：竟价地址请求错误
+
     com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonInstanceTypeCachingAgent
+	
 问题2：没有根据区域设置合适的endpoint，默认的sts.amazonaws.com无法认证cn-north-1
+
     com.netflix.spinnaker.clouddriver.aws.security.NetflixSTSAssumeRoleSessionCredentialsProvider
+	
 	PS：目前先硬编码为北京1区，后续做优化
+	
 问题3：assumeRole全称的生成未考虑中国区的特殊性，以致中国区的assumeRole全称错误
+
     解决方案：assumeRole必须使用全称，即arn:aws-cn:iam::048625849086:role/spinnakerManaged
 
 源码启动方式：
@@ -38,8 +44,8 @@ modified as needed in `build.gradle`.
 nohup sh -c "./gradlew --daemon 2>&1 | tee /tmp//clouddriver.log | cat >/dev/null" >/dev/null &
 ```
 
-如果需要jvm远程调试：
+如果需要jvm远程调试（调试端口7102）：
 ```
 nohup sh -c "./gradlew -DDEBUG=true --daemon 2>&1 | tee /tmp//clouddriver.log | cat >/dev/null" >/dev/null &
 ```
-调试端口7102
+
