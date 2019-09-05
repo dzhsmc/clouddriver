@@ -4,12 +4,14 @@ import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.deploy.DeploymentResult
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
+import com.netflix.spinnaker.clouddriver.tencent.client.AutoScalingClient
 import com.netflix.spinnaker.clouddriver.tencent.deploy.description.TencentDeployDescription
 import com.netflix.spinnaker.clouddriver.tencent.deploy.handlers.TencentDeployHandler
 import com.netflix.spinnaker.clouddriver.tencent.provider.view.TencentClusterProvider
+import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
-import com.netflix.spinnaker.clouddriver.tencent.client.AutoScalingClient
 
+@Slf4j
 class CloneTencentServerGroupAtomicOperation implements AtomicOperation<DeploymentResult> {
 
   private static final String BASE_PHASE = "CLONE_SERVER_GROUP"

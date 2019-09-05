@@ -58,11 +58,14 @@ class TencentDeployDescription extends AbstractTencentCredentialsDescription imp
    */
 
   Source source = new Source()
+  boolean copySourceScalingPoliciesAndActions = true
+
 
   @Canonical
   static class Source implements ServerGroupsNameable {
     String region
     String serverGroupName
+    Boolean useSourceCapacity
 
     @Override
     Collection<String> getServerGroupNames() {
