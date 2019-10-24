@@ -184,7 +184,7 @@ public class AliCloudLoadBalancerProvider implements LoadBalancerProvider<AliClo
     LoadBalancerServerGroup loadBalancerServerGroup = new LoadBalancerServerGroup();
     Map<String, Object> attributes = applicationServerGroup.getAttributes();
     loadBalancerServerGroup.setName(String.valueOf(attributes.get("name")));
-    loadBalancerServerGroup.setCloudProvider(AliCloudProvider.ID);
+    //loadBalancerServerGroup.setCloudProvider(AliCloudProvider.ID);
     loadBalancerServerGroup.setRegion(String.valueOf(attributes.get("region")));
     loadBalancerServerGroup.setAccount(String.valueOf(attributes.get("account")));
     Map<String, Object> scalingGroup = (Map) attributes.get("scalingGroup");

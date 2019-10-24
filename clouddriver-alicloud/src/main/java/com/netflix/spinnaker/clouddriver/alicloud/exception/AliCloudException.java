@@ -1,8 +1,6 @@
 package com.netflix.spinnaker.clouddriver.alicloud.exception;
 
-import com.netflix.spinnaker.kork.exceptions.IntegrationException;
-
-public class AliCloudException extends IntegrationException {
+public class AliCloudException extends RuntimeException {
 
   public AliCloudException(String message) {
     super(message);

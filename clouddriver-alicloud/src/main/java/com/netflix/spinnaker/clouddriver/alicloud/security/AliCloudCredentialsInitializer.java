@@ -56,4 +56,9 @@ public class AliCloudCredentialsInitializer implements CredentialsInitializerSyn
             });
     return aliCloudCredentialsList;
   }
+
+  @Override
+  public String getCredentialsSynchronizationBeanName() {
+    return "synchronizeAlicloudAccounts";
+  }
 }

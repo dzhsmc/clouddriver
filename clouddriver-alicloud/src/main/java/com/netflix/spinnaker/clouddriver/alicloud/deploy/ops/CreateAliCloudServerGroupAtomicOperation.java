@@ -158,6 +158,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       BasicAliCloudDeployDescription description, CreateScalingGroupRequest request) {
     if (description != null
         && description.getSource() != null
+        && description.getSource().getUseSourceCapacity() != null
         && description.getSource().getUseSourceCapacity()
         && StringUtils.isNotEmpty(description.getSource().getAsgName())) {
 
