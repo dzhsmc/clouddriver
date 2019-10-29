@@ -303,8 +303,12 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(httpsListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
@@ -319,8 +323,12 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(tcpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + " loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
@@ -335,8 +343,12 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(udpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
@@ -351,8 +363,12 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(httpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
+              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
+                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
             break;
         }

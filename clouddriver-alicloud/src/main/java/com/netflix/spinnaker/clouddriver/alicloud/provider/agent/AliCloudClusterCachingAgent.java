@@ -194,9 +194,15 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
           DescribeInstancesRequest request = new DescribeInstancesRequest();
           request.setInstanceIds(instanceIds);
           DescribeInstancesResponse acsResponse = client.getAcsResponse(request);
-          Instance instance = acsResponse.getInstances().get(0);
-          String zoneId = instance.getZoneId();
-          scalingInstance.setCreationType(zoneId);
+          if(acsResponse.getInstances()!=null && acsResponse.getInstances().size()>0){
+            Instance instance = acsResponse.getInstances().get(0);
+            String zoneId = instance.getZoneId();
+            scalingInstance.setCreationType(zoneId);
+          }else{
+            logger.error(instanceIds + " -> DescribeInstancesRequest NotFound, scalingGroupId is "
+              + scalingGroupId + " activeScalingConfigurationId is " + activeScalingConfigurationId);
+          }
+
         }
       }
 
