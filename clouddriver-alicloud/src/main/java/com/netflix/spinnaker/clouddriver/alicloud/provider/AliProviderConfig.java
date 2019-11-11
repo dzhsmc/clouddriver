@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -43,45 +44,48 @@ public class AliProviderConfig {
   @Bean
   @DependsOn("synchronizeAliCloudAccounts")
   public AliProvider aliProvider(
-      AccountCredentialsRepository accountCredentialsRepository,
-      AliCloudClientProvider aliCloudClientProvider,
-      AliCloudCredentialsProvider aliCloudCredentialsProvider,
-      Registry registry,
-      ObjectMapper objectMapper,
-      AliCloudProvider aliCloudProvider,
-      ClientFactory clientFactory) {
+    AccountCredentialsRepository accountCredentialsRepository,
+    AliCloudClientProvider aliCloudClientProvider,
+    AliCloudCredentialsProvider aliCloudCredentialsProvider,
+    Registry registry,
+    ObjectMapper objectMapper,
+    AliCloudProvider aliCloudProvider,
+    ApplicationContext ctx,
+    ClientFactory clientFactory) {
     AliProvider provider =
-        new AliProvider(
-            accountCredentialsRepository,
-            Collections.newSetFromMap(new ConcurrentHashMap<Agent, Boolean>()));
-    synchronizeAliProvider(
-        provider,
+      new AliProvider(
         accountCredentialsRepository,
-        aliCloudClientProvider,
-        aliCloudCredentialsProvider,
-        registry,
-        objectMapper,
-        aliCloudProvider,
-        clientFactory);
+        Collections.newSetFromMap(new ConcurrentHashMap<Agent, Boolean>()));
+    synchronizeAliProvider(
+      provider,
+      accountCredentialsRepository,
+      aliCloudClientProvider,
+      aliCloudCredentialsProvider,
+      registry,
+      objectMapper,
+      aliCloudProvider,
+      ctx,
+      clientFactory);
     return provider;
   }
 
   @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @Bean
   public AliProviderSynchronizer synchronizeAliProvider(
-      AliProvider aliProvider,
-      AccountCredentialsRepository accountCredentialsRepository,
-      AliCloudClientProvider aliCloudClientProvider,
-      AliCloudCredentialsProvider aliCloudCredentialsProvider,
-      Registry registry,
-      ObjectMapper objectMapper,
-      AliCloudProvider aliCloudProvider,
-      ClientFactory clientFactory) {
+    AliProvider aliProvider,
+    AccountCredentialsRepository accountCredentialsRepository,
+    AliCloudClientProvider aliCloudClientProvider,
+    AliCloudCredentialsProvider aliCloudCredentialsProvider,
+    Registry registry,
+    ObjectMapper objectMapper,
+    AliCloudProvider aliCloudProvider,
+    ApplicationContext ctx,
+    ClientFactory clientFactory) {
 
     Set<String> scheduledAccounts = ProviderUtils.getScheduledAccounts(aliProvider);
     Set<AliCloudCredentials> allAccounts =
-        ProviderUtils.buildThreadSafeSetOfAccounts(
-            accountCredentialsRepository, AliCloudCredentials.class);
+      ProviderUtils.buildThreadSafeSetOfAccounts(
+        accountCredentialsRepository, AliCloudCredentials.class);
     List<Agent> newAgents = new LinkedList<>();
 
     for (AliCloudCredentials credentials : allAccounts) {
@@ -90,66 +94,74 @@ public class AliProviderConfig {
         for (String region : credentials.getRegions()) {
           if (!scheduledAccounts.contains(credentials.getName())) {
             newAgents.add(
-                new AliCloudLoadBalancerCachingAgent(
-                    aliProvider,
-                    region,
-                    aliCloudClientProvider,
-                    aliCloudCredentialsProvider,
-                    aliCloudProvider,
-                    objectMapper,
-                    registry,
-                    credentials,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudLoadBalancerCachingAgent(
+                aliProvider,
+                region,
+                aliCloudClientProvider,
+                aliCloudCredentialsProvider,
+                aliCloudProvider,
+                objectMapper,
+                registry,
+                credentials,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudSubnetCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudSubnetCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudImageCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudImageCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudInstanceTypeCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudInstanceTypeCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudSecurityGroupCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudSecurityGroupCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudKeyPairCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudKeyPairCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudClusterCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudClusterCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
             newAgents.add(
-                new AliCloudInstanceCachingAgent(
-                    credentials,
-                    region,
-                    objectMapper,
-                    clientFactory.createClient(
-                        region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+              new AliCloudInstanceCachingAgent(
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
+            newAgents.add(
+              new AliCloudLoadBalancerInstanceStateCachingAgent(
+                ctx,
+                credentials,
+                region,
+                objectMapper,
+                clientFactory.createClient(
+                  region, credentials.getAccessKeyId(), credentials.getAccessSecretKey())));
           }
         }
       }

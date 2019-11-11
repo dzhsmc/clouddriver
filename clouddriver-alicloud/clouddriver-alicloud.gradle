@@ -38,7 +38,7 @@ dependencies {
   compile 'com.aliyun:aliyun-java-sdk-slb:3.2.9'
   compile 'com.aliyun:aliyun-java-sdk-vpc:3.0.6'
   compile 'com.aliyun:aliyun-java-sdk-ecs:4.16.10'
-  compile 'com.aliyun:aliyun-java-sdk-ess:2.3.0'
+  compile 'com.aliyun:aliyun-java-sdk-ess:2.3.2'
 
   testImplementation "cglib:cglib-nodep"
   testImplementation "org.mockito:mockito-core:2.23.4"

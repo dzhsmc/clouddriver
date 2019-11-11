@@ -53,17 +53,17 @@ public class Keys implements KeyParser {
   public static final String SEPARATOR = ":";
 
   public static String getLoadBalancerKey(
-      String loadBalancerName, String account, String region, String vpcId) {
+    String loadBalancerName, String account, String region, String vpcId) {
     String key =
-        ID
-            + SEPARATOR
-            + Namespace.LOAD_BALANCERS
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + loadBalancerName;
+      ID
+        + SEPARATOR
+        + Namespace.LOAD_BALANCERS
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + loadBalancerName;
     if (!StringUtils.isEmpty(vpcId)) {
       key = key + SEPARATOR + vpcId;
     }
@@ -72,76 +72,76 @@ public class Keys implements KeyParser {
 
   public static String getSubnetKey(String vSwitchId, String region, String account) {
     String key =
-        ID
-            + SEPARATOR
-            + Namespace.SUBNETS
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + vSwitchId;
+      ID
+        + SEPARATOR
+        + Namespace.SUBNETS
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + vSwitchId;
     return key;
   }
 
   public static String getImageKey(String imageId, String account, String region) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.IMAGES
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + imageId;
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.IMAGES
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + imageId;
     return key;
   }
 
   public static String getNamedImageKey(String account, String imageName) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.NAMED_IMAGES
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + imageName;
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.NAMED_IMAGES
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + imageName;
     return key;
   }
 
   public static String getInstanceTypeKey(String account, String region, String zoneId) {
     String key =
-        ID
-            + SEPARATOR
-            + Namespace.INSTANCE_TYPES
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + zoneId;
+      ID
+        + SEPARATOR
+        + Namespace.INSTANCE_TYPES
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + zoneId;
     return key;
   }
 
   public static String getSecurityGroupKey(
-      String securityGroupName,
-      String securityGroupId,
-      String region,
-      String account,
-      String vpcId) {
+    String securityGroupName,
+    String securityGroupId,
+    String region,
+    String account,
+    String vpcId) {
     String key =
-        ID
-            + SEPARATOR
-            + Namespace.SECURITY_GROUPS
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + securityGroupName
-            + SEPARATOR
-            + securityGroupId;
+      ID
+        + SEPARATOR
+        + Namespace.SECURITY_GROUPS
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + securityGroupName
+        + SEPARATOR
+        + securityGroupId;
     if (!StringUtils.isEmpty(vpcId)) {
       key = key + SEPARATOR + vpcId;
     }
@@ -150,91 +150,117 @@ public class Keys implements KeyParser {
 
   public static String getKeyPairKey(String keyPairName, String region, String account) {
     String key =
-        ID
-            + SEPARATOR
-            + Namespace.ALI_CLOUD_KEY_PAIRS
-            + SEPARATOR
-            + keyPairName
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region;
+      ID
+        + SEPARATOR
+        + Namespace.ALI_CLOUD_KEY_PAIRS
+        + SEPARATOR
+        + keyPairName
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region;
     return key;
   }
 
   public static String getServerGroupKey(
-      String autoScalingGroupName, String account, String region) {
+    String autoScalingGroupName, String account, String region) {
     AliCloudServerGroup serverGroup = new AliCloudServerGroup();
     serverGroup.setName(autoScalingGroupName);
     // Names names = Names.parseName(autoScalingGroupName);
     return getServerGroupKey(
-        serverGroup.getMoniker().getCluster(), autoScalingGroupName, account, region);
+      serverGroup.getMoniker().getCluster(), autoScalingGroupName, account, region);
   }
 
   public static String getServerGroupKey(
-      String cluster, String autoScalingGroupName, String account, String region) {
+    String cluster, String autoScalingGroupName, String account, String region) {
     return ID
-        + SEPARATOR
-        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.SERVER_GROUPS
-        + SEPARATOR
-        + cluster
-        + SEPARATOR
-        + account
-        + SEPARATOR
-        + region
-        + SEPARATOR
-        + autoScalingGroupName;
+      + SEPARATOR
+      + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.SERVER_GROUPS
+      + SEPARATOR
+      + cluster
+      + SEPARATOR
+      + account
+      + SEPARATOR
+      + region
+      + SEPARATOR
+      + autoScalingGroupName;
   }
 
   public static String getApplicationKey(String application) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.APPLICATIONS
-            + SEPARATOR
-            + application.toLowerCase();
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.APPLICATIONS
+        + SEPARATOR
+        + application.toLowerCase();
     return key;
   }
 
   public static String getClusterKey(String clusterName, String application, String account) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.CLUSTERS
-            + SEPARATOR
-            + application.toLowerCase()
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + clusterName;
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.CLUSTERS
+        + SEPARATOR
+        + application.toLowerCase()
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + clusterName;
     return key;
   }
 
   public static String getLaunchConfigKey(String launchConfigName, String account, String region) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.LAUNCH_CONFIGS
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + launchConfigName;
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.LAUNCH_CONFIGS
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + launchConfigName;
     return key;
   }
 
   public static String getInstanceKey(String instanceId, String account, String region) {
     String key =
-        ID
-            + SEPARATOR
-            + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.INSTANCES
-            + SEPARATOR
-            + account
-            + SEPARATOR
-            + region
-            + SEPARATOR
-            + instanceId;
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.INSTANCES
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + instanceId;
+    return key;
+  }
+
+  public static String getInstanceHealthKey(
+    String loadBalancerId,
+    String instanceId,
+    String port,
+    String account,
+    String region,
+    String provider) {
+    String key =
+      ID
+        + SEPARATOR
+        + com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.HEALTH
+        + SEPARATOR
+        + loadBalancerId
+        + SEPARATOR
+        + instanceId
+        + SEPARATOR
+        + port
+        + SEPARATOR
+        + account
+        + SEPARATOR
+        + region
+        + SEPARATOR
+        + provider;
     return key;
   }
 
@@ -259,13 +285,17 @@ public class Keys implements KeyParser {
 
     switch (result.get("type")) {
       case "securityGroups":
-        Names names = Names.parseName(parts[4]);
-        result.put("application", names.getApp());
-        result.put("name", parts[4]);
-        result.put("id", parts[5]);
-        result.put("region", parts[3]);
-        result.put("account", parts[2]);
-        result.put("vpcId", parts[6] == "null" ? null : parts[6]);
+        if (parts.length >= 7 && !"null".equals(parts[6])) {
+          Names names = Names.parseName(parts[4]);
+          result.put("application", names.getApp());
+          result.put("name", parts[4]);
+          result.put("id", parts[5]);
+          result.put("region", parts[3]);
+          result.put("account", parts[2]);
+          result.put("vpcId", parts[6]);
+        } else {
+          return null;
+        }
         break;
       default:
         return null;

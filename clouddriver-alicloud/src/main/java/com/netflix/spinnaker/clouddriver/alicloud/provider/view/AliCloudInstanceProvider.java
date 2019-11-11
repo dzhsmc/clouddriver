@@ -15,6 +15,7 @@
  */
 package com.netflix.spinnaker.clouddriver.alicloud.provider.view;
 
+import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.HEALTH;
 import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.INSTANCES;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,13 +23,11 @@ import com.netflix.spinnaker.cats.cache.Cache;
 import com.netflix.spinnaker.cats.cache.CacheData;
 import com.netflix.spinnaker.clouddriver.alicloud.AliCloudProvider;
 import com.netflix.spinnaker.clouddriver.alicloud.cache.Keys;
+import com.netflix.spinnaker.clouddriver.alicloud.common.HealthHelper;
 import com.netflix.spinnaker.clouddriver.alicloud.model.AliCloudInstance;
 import com.netflix.spinnaker.clouddriver.model.HealthState;
 import com.netflix.spinnaker.clouddriver.model.InstanceProvider;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +40,7 @@ public class AliCloudInstanceProvider implements InstanceProvider<AliCloudInstan
 
   @Autowired
   public AliCloudInstanceProvider(
-      ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
+    ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
     this.objectMapper = objectMapper;
     this.cacheView = cacheView;
     this.provider = provider;
@@ -49,6 +48,7 @@ public class AliCloudInstanceProvider implements InstanceProvider<AliCloudInstan
 
   @Override
   public AliCloudInstance getInstance(String account, String region, String id) {
+    Collection<String> allHealthyKeys = cacheView.getIdentifiers(HEALTH.ns);
     CacheData instanceEntry = cacheView.get(INSTANCES.ns, Keys.getInstanceKey(id, account, region));
     if (instanceEntry == null) {
       return null;
@@ -65,19 +65,21 @@ public class AliCloudInstanceProvider implements InstanceProvider<AliCloudInstan
       Map<String, Object> m = new HashMap<>();
       m.put("type", provider.getDisplayName());
       m.put("healthClass", "platform");
-      m.put("state", flag ? HealthState.Up : HealthState.Down);
+      HealthState healthState =
+        HealthHelper.judgeInstanceHealthyState(allHealthyKeys, null, instanceId, cacheView);
+      m.put("state", !flag ? HealthState.Down : healthState);
       health.add(m);
       String zone = (String) attributes.get("zoneId");
 
       AliCloudInstance instance =
-          new AliCloudInstance(
-              String.valueOf(id),
-              null,
-              zone,
-              null,
-              AliCloudProvider.ID,
-              (flag ? HealthState.Up : HealthState.Down),
-              health);
+        new AliCloudInstance(
+          String.valueOf(id),
+          null,
+          zone,
+          null,
+          AliCloudProvider.ID,
+          (!flag ? HealthState.Down : healthState),
+          health);
       instance.setAttributes(attributes);
 
       return instance;
