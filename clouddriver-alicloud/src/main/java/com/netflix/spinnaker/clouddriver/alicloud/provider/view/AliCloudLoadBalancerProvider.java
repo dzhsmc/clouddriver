@@ -230,7 +230,7 @@ public class AliCloudLoadBalancerProvider implements LoadBalancerProvider<AliClo
         detachedInstances.add(instanceId);
       }
     }
-    // loadBalancerServerGroup.setDetachedInstances(detachedInstances);
+    loadBalancerServerGroup.setDetachedInstances(detachedInstances);
     loadBalancerServerGroup.setInstances(loadBalancerInstances);
     return loadBalancerServerGroup;
   }

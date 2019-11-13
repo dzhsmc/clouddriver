@@ -34,5 +34,17 @@ public class LoadBalancerServerGroup {
   Boolean isDisabled;
   Set<String> detachedInstances;
   Set<LoadBalancerInstance> instances;
+  String cloudProvider;
+
+  public LoadBalancerServerGroup(String name,String account,String region,
+                                 Boolean isDisabled,Set<String> detachedInstances,Set<LoadBalancerInstance> instances) {
+    super();
+    this.name = name;
+    this.account = account;
+    this.region = region;
+    this.isDisabled = isDisabled;
+    this.detachedInstances = detachedInstances;
+    this.instances = instances;
+  }
 
 }
