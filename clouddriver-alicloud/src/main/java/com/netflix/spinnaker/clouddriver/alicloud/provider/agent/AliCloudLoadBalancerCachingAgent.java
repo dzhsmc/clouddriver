@@ -24,19 +24,8 @@ import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.ON
 import com.aliyuncs.IAcsClient;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.exceptions.ServerException;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerAttributeRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerAttributeResponse;
+import com.aliyuncs.slb.model.v20140515.*;
 import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerAttributeResponse.ListenerPortAndProtocal;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerHTTPListenerAttributeRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerHTTPListenerAttributeResponse;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerHTTPSListenerAttributeRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerHTTPSListenerAttributeResponse;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerTCPListenerAttributeRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerTCPListenerAttributeResponse;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerUDPListenerAttributeRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerUDPListenerAttributeResponse;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancersRequest;
-import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancersResponse;
 import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancersResponse.LoadBalancer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,15 +69,15 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
   IAcsClient client;
 
   public AliCloudLoadBalancerCachingAgent(
-      AliProvider aliProvider,
-      String region,
-      AliCloudClientProvider aliCloudClientProvider,
-      AliCloudCredentialsProvider aliCloudCredentialsProvider,
-      AliCloudProvider aliCloudProvider,
-      ObjectMapper objectMapper,
-      Registry registry,
-      AliCloudCredentials credentials,
-      IAcsClient client) {
+    AliProvider aliProvider,
+    String region,
+    AliCloudClientProvider aliCloudClientProvider,
+    AliCloudCredentialsProvider aliCloudCredentialsProvider,
+    AliCloudProvider aliCloudProvider,
+    ObjectMapper objectMapper,
+    Registry registry,
+    AliCloudCredentials credentials,
+    IAcsClient client) {
     this.account = credentials;
     this.aliProvider = aliProvider;
     this.region = region;
@@ -96,25 +85,25 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
     this.aliCloudCredentialsProvider = aliCloudCredentialsProvider;
     this.objectMapper = objectMapper;
     this.metricsSupport =
-        new OnDemandMetricsSupport(
-            registry,
-            this,
-            aliCloudProvider.getId()
-                + ":"
-                + aliCloudProvider.getId()
-                + ":"
-                + OnDemandAgent.OnDemandType.LoadBalancer);
+      new OnDemandMetricsSupport(
+        registry,
+        this,
+        aliCloudProvider.getId()
+          + ":"
+          + aliCloudProvider.getId()
+          + ":"
+          + OnDemandAgent.OnDemandType.LoadBalancer);
     this.client = client;
   }
 
   static final Collection<AgentDataType> types =
-      Collections.unmodifiableCollection(
-          new ArrayList<AgentDataType>() {
-            {
-              add(AUTHORITATIVE.forType(LOAD_BALANCERS.ns));
-              add(INFORMATIVE.forType(INSTANCES.ns));
-            }
-          });
+    Collections.unmodifiableCollection(
+      new ArrayList<AgentDataType>() {
+        {
+          add(AUTHORITATIVE.forType(LOAD_BALANCERS.ns));
+          add(INFORMATIVE.forType(INSTANCES.ns));
+        }
+      });
 
   @Override
   public String getAccountName() {
@@ -150,14 +139,14 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
     for (LoadBalancer loadBalancer : loadBalancers) {
 
       DescribeLoadBalancerAttributeRequest describeLoadBalancerAttributeRequest =
-          new DescribeLoadBalancerAttributeRequest();
+        new DescribeLoadBalancerAttributeRequest();
       describeLoadBalancerAttributeRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
       DescribeLoadBalancerAttributeResponse describeLoadBalancerAttributeResponse;
       try {
         describeLoadBalancerAttributeResponse =
-            client.getAcsResponse(describeLoadBalancerAttributeRequest);
+          client.getAcsResponse(describeLoadBalancerAttributeRequest);
         loadBalancerAttributes.put(
-            loadBalancer.getLoadBalancerName(), describeLoadBalancerAttributeResponse);
+          loadBalancer.getLoadBalancerName(), describeLoadBalancerAttributeResponse);
 
       } catch (ServerException e) {
         e.printStackTrace();
@@ -180,17 +169,17 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
     String loadBalancerId = null;
 
     queryResponse =
-        metricsSupport.readData(
-            () -> {
-              try {
-                return client.getAcsResponse(queryRequest);
-              } catch (ServerException e) {
-                e.printStackTrace();
-              } catch (ClientException e) {
-                e.printStackTrace();
-              }
-              return null;
-            });
+      metricsSupport.readData(
+        () -> {
+          try {
+            return client.getAcsResponse(queryRequest);
+          } catch (ServerException e) {
+            e.printStackTrace();
+          } catch (ClientException e) {
+            e.printStackTrace();
+          }
+          return null;
+        });
 
     loadBalancers.addAll(queryResponse.getLoadBalancers());
 
@@ -199,63 +188,63 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
     }
 
     DescribeLoadBalancerAttributeRequest describeLoadBalancerAttributeRequest =
-        new DescribeLoadBalancerAttributeRequest();
+      new DescribeLoadBalancerAttributeRequest();
     describeLoadBalancerAttributeRequest.setLoadBalancerId(loadBalancerId);
     DescribeLoadBalancerAttributeResponse describeLoadBalancerAttributeResponse;
     describeLoadBalancerAttributeResponse =
-        metricsSupport.readData(
-            () -> {
-              try {
-                return client.getAcsResponse(describeLoadBalancerAttributeRequest);
+      metricsSupport.readData(
+        () -> {
+          try {
+            return client.getAcsResponse(describeLoadBalancerAttributeRequest);
 
-              } catch (ServerException e) {
-                e.printStackTrace();
-              } catch (ClientException e) {
-                e.printStackTrace();
-              }
-              return null;
-            });
+          } catch (ServerException e) {
+            e.printStackTrace();
+          } catch (ClientException e) {
+            e.printStackTrace();
+          }
+          return null;
+        });
 
     loadBalancerAttributes.put(
-        describeLoadBalancerAttributeResponse.getLoadBalancerName(),
-        describeLoadBalancerAttributeResponse);
+      describeLoadBalancerAttributeResponse.getLoadBalancerName(),
+      describeLoadBalancerAttributeResponse);
 
     CacheResult cacheResult = buildCacheResult(loadBalancers, loadBalancerAttributes, client);
 
     if (cacheResult.getCacheResults().values().isEmpty()) {
       providerCache.evictDeletedItems(
-          ON_DEMAND.ns,
-          Lists.newArrayList(
-              Keys.getLoadBalancerKey(
-                  (String) data.get("loadBalancerName"),
-                  account.getName(),
-                  region,
-                  (String) data.get("vpcId"))));
+        ON_DEMAND.ns,
+        Lists.newArrayList(
+          Keys.getLoadBalancerKey(
+            (String) data.get("loadBalancerName"),
+            account.getName(),
+            region,
+            (String) data.get("vpcId"))));
     } else {
       metricsSupport.onDemandStore(
-          () -> {
-            Map<String, Object> map = Maps.newHashMap();
-            map.put("cacheTime", new Date());
-            try {
-              map.put(
-                  "cacheResults", objectMapper.writeValueAsString(cacheResult.getCacheResults()));
-            } catch (JsonProcessingException exception) {
-              exception.printStackTrace();
-            }
+        () -> {
+          Map<String, Object> map = Maps.newHashMap();
+          map.put("cacheTime", new Date());
+          try {
+            map.put(
+              "cacheResults", objectMapper.writeValueAsString(cacheResult.getCacheResults()));
+          } catch (JsonProcessingException exception) {
+            exception.printStackTrace();
+          }
 
-            CacheData cacheData =
-                new DefaultCacheData(
-                    Keys.getLoadBalancerKey(
-                        (String) data.get("loadBalancerName"),
-                        account.getName(),
-                        region,
-                        (String) data.get("vpcId")),
-                    map,
-                    Maps.newHashMap());
+          CacheData cacheData =
+            new DefaultCacheData(
+              Keys.getLoadBalancerKey(
+                (String) data.get("loadBalancerName"),
+                account.getName(),
+                region,
+                (String) data.get("vpcId")),
+              map,
+              Maps.newHashMap());
 
-            providerCache.putCacheData(ON_DEMAND.ns, cacheData);
-            return null;
-          });
+          providerCache.putCacheData(ON_DEMAND.ns, cacheData);
+          return null;
+        });
     }
 
     OnDemandResult result = new OnDemandResult(getAgentType(), cacheResult, null);
@@ -264,9 +253,9 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
   }
 
   private CacheResult buildCacheResult(
-      Collection<DescribeLoadBalancersResponse.LoadBalancer> loadBalancers,
-      Map<String, DescribeLoadBalancerAttributeResponse> loadBalancerAttributes,
-      IAcsClient client) {
+    Collection<DescribeLoadBalancersResponse.LoadBalancer> loadBalancers,
+    Map<String, DescribeLoadBalancerAttributeResponse> loadBalancerAttributes,
+    IAcsClient client) {
 
     Map<String, Collection<CacheData>> cacheResults = new HashMap<>(16);
     List list = new ArrayList();
@@ -277,24 +266,24 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
       map.put("account", account.getName());
 
       DescribeLoadBalancerAttributeResponse describeLoadBalancerAttributeResponse =
-          loadBalancerAttributes.get(loadBalancerName);
+        loadBalancerAttributes.get(loadBalancerName);
       Map<String, Object> attributeMap =
-          objectMapper.convertValue(describeLoadBalancerAttributeResponse, Map.class);
+        objectMapper.convertValue(describeLoadBalancerAttributeResponse, Map.class);
 
       List<Map> listenerPortsAndProtocal = new ArrayList<>();
       for (ListenerPortAndProtocal listenerPortAndProtocal :
-          describeLoadBalancerAttributeResponse.getListenerPortsAndProtocal()) {
+        describeLoadBalancerAttributeResponse.getListenerPortsAndProtocal()) {
         Integer listenerPort = listenerPortAndProtocal.getListenerPort();
         String listenerProtocal = listenerPortAndProtocal.getListenerProtocal().toUpperCase();
         Map<String, Object> portAndProtocalMap =
-            objectMapper.convertValue(listenerPortAndProtocal, Map.class);
+          objectMapper.convertValue(listenerPortAndProtocal, Map.class);
 
         Map<String, Object> listenerMap = new HashMap<>(16);
 
         switch (listenerProtocal) {
           case "HTTPS":
             DescribeLoadBalancerHTTPSListenerAttributeRequest httpsListenerAttributeRequest =
-                new DescribeLoadBalancerHTTPSListenerAttributeRequest();
+              new DescribeLoadBalancerHTTPSListenerAttributeRequest();
             httpsListenerAttributeRequest.setListenerPort(listenerPort);
             httpsListenerAttributeRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
             DescribeLoadBalancerHTTPSListenerAttributeResponse httpsListenerAttributeResponse;
@@ -303,18 +292,14 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(httpsListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
           case "TCP":
             DescribeLoadBalancerTCPListenerAttributeRequest tcpListenerAttributeRequest =
-                new DescribeLoadBalancerTCPListenerAttributeRequest();
+              new DescribeLoadBalancerTCPListenerAttributeRequest();
             tcpListenerAttributeRequest.setListenerPort(listenerPort);
             tcpListenerAttributeRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
             DescribeLoadBalancerTCPListenerAttributeResponse tcpListenerAttributeResponse;
@@ -323,18 +308,14 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(tcpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + " loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
           case "UDP":
             DescribeLoadBalancerUDPListenerAttributeRequest udpListenerAttributeRequest =
-                new DescribeLoadBalancerUDPListenerAttributeRequest();
+              new DescribeLoadBalancerUDPListenerAttributeRequest();
             udpListenerAttributeRequest.setListenerPort(listenerPort);
             udpListenerAttributeRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
             DescribeLoadBalancerUDPListenerAttributeResponse udpListenerAttributeResponse;
@@ -343,18 +324,14 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(udpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
 
             break;
           default:
             DescribeLoadBalancerHTTPListenerAttributeRequest httpListenerAttributeRequest =
-                new DescribeLoadBalancerHTTPListenerAttributeRequest();
+              new DescribeLoadBalancerHTTPListenerAttributeRequest();
             httpListenerAttributeRequest.setListenerPort(listenerPort);
             httpListenerAttributeRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
             DescribeLoadBalancerHTTPListenerAttributeResponse httpListenerAttributeResponse;
@@ -363,12 +340,8 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               listenerMap = objectMapper.convertValue(httpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             } catch (ClientException e) {
               e.printStackTrace();
-              logger.error("listenerPort: "+ listenerPort + "loadBalancer:" + loadBalancer.getLoadBalancerId() +
-                " code:"+ e.getErrCode() +" mes:" + e.getErrMsg() + " type:" + e.getErrorType());
             }
             break;
         }
@@ -378,13 +351,26 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
 
       attributeMap.put("listenerPortsAndProtocal", listenerPortsAndProtocal);
       map.put("attributes", attributeMap);
-
+      DescribeVServerGroupsRequest describeVServerGroupsRequest =
+        new DescribeVServerGroupsRequest();
+      describeVServerGroupsRequest.setLoadBalancerId(loadBalancer.getLoadBalancerId());
+      try {
+        DescribeVServerGroupsResponse describeVServerGroupsResponse =
+          client.getAcsResponse(describeVServerGroupsRequest);
+        List<DescribeVServerGroupsResponse.VServerGroup> vServerGroups =
+          describeVServerGroupsResponse.getVServerGroups();
+        map.put("vServerGroups", vServerGroups);
+      } catch (ServerException e) {
+        e.printStackTrace();
+      } catch (ClientException e) {
+        e.printStackTrace();
+      }
       list.add(
-          new DefaultCacheData(
-              Keys.getLoadBalancerKey(
-                  loadBalancerName, account.getName(), region, loadBalancer.getVpcId()),
-              map,
-              Maps.newHashMap()));
+        new DefaultCacheData(
+          Keys.getLoadBalancerKey(
+            loadBalancerName, account.getName(), region, loadBalancer.getVpcId()),
+          map,
+          Maps.newHashMap()));
     }
     cacheResults.put(LOAD_BALANCERS.ns, list);
 

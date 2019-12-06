@@ -27,6 +27,7 @@ import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerAttributeResponse.Li
 import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancerHTTPListenerAttributeResponse;
 import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancersResponse;
 import com.aliyuncs.slb.model.v20140515.DescribeLoadBalancersResponse.LoadBalancer;
+import com.aliyuncs.slb.model.v20140515.DescribeVServerGroupsResponse;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.cats.agent.CacheResult;
 import com.netflix.spinnaker.cats.cache.CacheData;
@@ -62,24 +63,25 @@ public class AliCloudLoadBalancerCachingAgentTest extends CommonCachingAgentTest
   @Before
   public void testBefore() throws ClientException {
     when(client.getAcsResponse(any()))
-        .thenAnswer(new LoadBalancersAnswer())
-        .thenAnswer(new LoadBalancerAttributeAnswer())
-        .thenAnswer(new HTTPSListenerAnswer());
+      .thenAnswer(new LoadBalancersAnswer())
+      .thenAnswer(new LoadBalancerAttributeAnswer())
+      .thenAnswer(new HTTPSListenerAnswer())
+      .thenAnswer(new DescribeVServerGroupsResponseAnswer());
   }
 
   @Test
   public void testLoadData() {
     AliCloudLoadBalancerCachingAgent agent =
-        new AliCloudLoadBalancerCachingAgent(
-            aliProvider,
-            REGION,
-            aliCloudClientProvider,
-            aliCloudCredentialsProvider,
-            aliCloudProvider,
-            objectMapper,
-            registry,
-            account,
-            client);
+      new AliCloudLoadBalancerCachingAgent(
+        aliProvider,
+        REGION,
+        aliCloudClientProvider,
+        aliCloudCredentialsProvider,
+        aliCloudProvider,
+        objectMapper,
+        registry,
+        account,
+        client);
     CacheResult result = agent.loadData(providerCache);
     String key = Keys.getLoadBalancerKey(NAME, ACCOUNT, REGION, null);
     List<CacheData> LoadBalancers = (List) result.getCacheResults().get(LOAD_BALANCERS.ns);
@@ -102,11 +104,11 @@ public class AliCloudLoadBalancerCachingAgentTest extends CommonCachingAgentTest
   }
 
   private class LoadBalancerAttributeAnswer
-      implements Answer<DescribeLoadBalancerAttributeResponse> {
+    implements Answer<DescribeLoadBalancerAttributeResponse> {
 
     @Override
     public DescribeLoadBalancerAttributeResponse answer(InvocationOnMock invocation)
-        throws Throwable {
+      throws Throwable {
       DescribeLoadBalancerAttributeResponse response = new DescribeLoadBalancerAttributeResponse();
       response.setLoadBalancerName(NAME);
       response.setLoadBalancerId(ID);
@@ -121,14 +123,25 @@ public class AliCloudLoadBalancerCachingAgentTest extends CommonCachingAgentTest
   }
 
   private class HTTPSListenerAnswer
-      implements Answer<DescribeLoadBalancerHTTPListenerAttributeResponse> {
+    implements Answer<DescribeLoadBalancerHTTPListenerAttributeResponse> {
     @Override
     public DescribeLoadBalancerHTTPListenerAttributeResponse answer(InvocationOnMock invocation)
-        throws Throwable {
+      throws Throwable {
       DescribeLoadBalancerHTTPListenerAttributeResponse response =
-          new DescribeLoadBalancerHTTPListenerAttributeResponse();
+        new DescribeLoadBalancerHTTPListenerAttributeResponse();
       response.setListenerPort(80);
       return response;
+    }
+  }
+
+  private class DescribeVServerGroupsResponseAnswer
+    implements Answer<DescribeVServerGroupsResponse> {
+
+    @Override
+    public DescribeVServerGroupsResponse answer(InvocationOnMock invocation) throws Throwable {
+      DescribeVServerGroupsResponse describeVServerGroupsResponse =
+        new DescribeVServerGroupsResponse();
+      return describeVServerGroupsResponse;
     }
   }
 }
