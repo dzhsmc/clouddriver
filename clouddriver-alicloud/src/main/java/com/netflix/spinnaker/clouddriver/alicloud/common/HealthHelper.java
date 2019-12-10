@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 public class HealthHelper {
 
@@ -41,24 +42,28 @@ public class HealthHelper {
   }
 
   public static HealthState judgeInstanceHealthyState(
-      Collection<String> allHealthyKeys,
-      List<String> loadBalancerIds,
-      String instanceId,
-      Cache cacheView) {
+    Collection<String> allHealthyKeys,
+    List<String> loadBalancerIds,
+    String instanceId,
+    Cache cacheView) {
     Set<String> healthyKeys = new HashSet<>();
     if (loadBalancerIds != null) {
       for (String loadBalancerId : loadBalancerIds) {
         List<String> collect =
-            allHealthyKeys.stream()
-                .filter(tab -> HealthHelper.healthyStateMatcher(tab, loadBalancerId, instanceId))
-                .collect(Collectors.toList());
+          allHealthyKeys.stream()
+            .filter(tab -> HealthHelper.healthyStateMatcher(tab, loadBalancerId, instanceId))
+            .collect(Collectors.toList());
+        Collection<CacheData> healthData = cacheView.getAll(HEALTH.ns, collect, null);
+        if (CollectionUtils.isEmpty(healthData)) {
+          return HealthState.Unknown;
+        }
         healthyKeys.addAll(collect);
       }
     } else {
       List<String> collect =
-          allHealthyKeys.stream()
-              .filter(tab -> HealthHelper.healthyStateMatcher(tab, null, instanceId))
-              .collect(Collectors.toList());
+        allHealthyKeys.stream()
+          .filter(tab -> HealthHelper.healthyStateMatcher(tab, null, instanceId))
+          .collect(Collectors.toList());
       healthyKeys.addAll(collect);
     }
     Collection<CacheData> healthData = cacheView.getAll(HEALTH.ns, healthyKeys, null);

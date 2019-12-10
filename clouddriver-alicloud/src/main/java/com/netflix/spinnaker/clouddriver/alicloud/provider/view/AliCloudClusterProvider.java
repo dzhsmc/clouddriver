@@ -171,7 +171,14 @@ public class AliCloudClusterProvider
       e.printStackTrace();
     }
     List<Map> instances = (List<Map>) attributes.get("instances");
-    //List<String> loadBalancerIds = (List<String>) scalingGroup.get("loadBalancerIds");
+    List<String> loadBalancerIds = (List<String>) scalingGroup.get("loadBalancerIds");
+    ArrayList<Map> vServerGroups = (ArrayList<Map>) scalingGroup.get("vserverGroups");
+    for (Map vServerGroup : vServerGroups) {
+      String loadBalancerId = vServerGroup.get("loadBalancerId").toString();
+      if (!loadBalancerIds.contains(loadBalancerId)) {
+        loadBalancerIds.add(loadBalancerId);
+      }
+    }
     for (Map instance : instances) {
       Object id = instance.get("instanceId");
       if (id != null) {
@@ -188,8 +195,12 @@ public class AliCloudClusterProvider
             : !flag
             ? HealthState.Down
             : HealthHelper.judgeInstanceHealthyState(
-            allHealthyKeys, null, id.toString(), cacheView);
-        m.put("state", healthState);
+            allHealthyKeys, loadBalancerIds, id.toString(), cacheView);
+        if (healthState.equals(HealthState.Unknown)) {
+          m.put("state", HealthState.Down);
+        } else {
+          m.put("state", healthState);
+        }
         health.add(m);
         String zone = (String) instance.get("creationType");
         AliCloudInstance i =
