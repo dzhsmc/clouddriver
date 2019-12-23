@@ -218,7 +218,12 @@ public class AliCloudClusterProvider
 
     capacity.setMax((Integer) maxSize);
     capacity.setMin((Integer) minSize);
-    capacity.setDesired(instances.size());
+    //capacity.setDesired(instances.size());
+    if(instances.size()>=(Integer) minSize){
+      capacity.setDesired(instances.size());
+    }else {
+      capacity.setDesired((Integer) minSize);
+    }
     serverGroup.setCapacity(capacity);
 
     serverGroup.setResult(serverGroupCache.getAttributes());

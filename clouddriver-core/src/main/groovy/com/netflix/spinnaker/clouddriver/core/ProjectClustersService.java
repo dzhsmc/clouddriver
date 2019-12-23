@@ -142,10 +142,18 @@ public class ProjectClustersService {
 
     return appClusters.stream()
       .filter(appCluster -> {
-        Names clusterNameParts = Names.parseName(appCluster.getName());
-        return appCluster.getAccountName().equals(projectCluster.account) &&
-          nameMatches(clusterNameParts.getStack(), projectCluster.stack) &&
-          nameMatches(clusterNameParts.getDetail(), projectCluster.detail);
+        if(appCluster!=null && appCluster.getName()!=null){
+          Names clusterNameParts = Names.parseName(appCluster.getName());
+          if("alicloud".equals(appCluster.getType())){
+            return true;
+          }else{
+            return appCluster.getAccountName().equals(projectCluster.account) &&
+              nameMatches(clusterNameParts.getStack(), projectCluster.stack) &&
+              nameMatches(clusterNameParts.getDetail(), projectCluster.detail);
+          }
+        }else{
+          return false;
+        }
       })
       .collect(Collectors.toSet());
   }

@@ -357,6 +357,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
               }
             }
           }
+          createAlarmRequest.setDimensions(createAlarmRequest.getDimensions());
           if (!CollectionUtils.isEmpty(createAlarmRequest.getAlarmActions())) {
             List<String> alarmActions = new ArrayList<>();
             for (String alarmAction : createAlarmRequest.getAlarmActions()) {
