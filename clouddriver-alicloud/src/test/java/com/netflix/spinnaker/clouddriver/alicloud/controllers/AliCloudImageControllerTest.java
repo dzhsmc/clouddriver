@@ -32,6 +32,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -44,20 +45,20 @@ public class AliCloudImageControllerTest {
 
   final Cache cacheView = mock(Cache.class);
   final LookupOptions lookupOptions = mock(LookupOptions.class);
-  // final HttpServletRequest request = mock(HttpServletRequest.class);
+  final HttpServletRequest request = mock(HttpServletRequest.class);
 
   @Before
   public void testBefore() {
     when(cacheView.filterIdentifiers(anyString(), anyString())).thenAnswer(new FilterAnswer());
     when(cacheView.getAll(anyString(), any(), any())).thenAnswer(new CacheDataAnswer());
     when(lookupOptions.getQ()).thenReturn("test");
-    // when(request.getParameterNames()).thenAnswer(new RequestAnswer());
+    when(request.getParameterNames()).thenAnswer(new RequestAnswer());
   }
 
   @Test
   public void testList() {
     AliCloudImageController controller = new AliCloudImageController(cacheView);
-    List<Image> list = controller.list(lookupOptions);
+    List<Image> list = controller.list(lookupOptions, request);
     assertTrue(list.size() == 2);
   }
 
@@ -79,8 +80,8 @@ public class AliCloudImageControllerTest {
       attributes.put("regionId", REGION);
       attributes.put("imageName", "win_xxx_xxx_xxx.vhd");
       CacheData cacheData1 =
-          new DefaultCacheData(
-              "alicloud:images:ali-account:cn-hangzhou:win_xxx_xxx_xxx.vhd", attributes, null);
+        new DefaultCacheData(
+          "alicloud:images:ali-account:cn-hangzhou:win_xxx_xxx_xxx.vhd", attributes, null);
       cacheDatas.add(cacheData1);
       return cacheDatas;
     }

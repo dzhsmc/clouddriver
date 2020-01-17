@@ -173,10 +173,12 @@ public class AliCloudClusterProvider
     List<Map> instances = (List<Map>) attributes.get("instances");
     List<String> loadBalancerIds = (List<String>) scalingGroup.get("loadBalancerIds");
     ArrayList<Map> vServerGroups = (ArrayList<Map>) scalingGroup.get("vserverGroups");
-    for (Map vServerGroup : vServerGroups) {
-      String loadBalancerId = vServerGroup.get("loadBalancerId").toString();
-      if (!loadBalancerIds.contains(loadBalancerId)) {
-        loadBalancerIds.add(loadBalancerId);
+    if (vServerGroups != null) {
+      for (Map vServerGroup : vServerGroups) {
+        String loadBalancerId = vServerGroup.get("loadBalancerId").toString();
+        if (!loadBalancerIds.contains(loadBalancerId)) {
+          loadBalancerIds.add(loadBalancerId);
+        }
       }
     }
     for (Map instance : instances) {
@@ -218,14 +220,13 @@ public class AliCloudClusterProvider
 
     capacity.setMax((Integer) maxSize);
     capacity.setMin((Integer) minSize);
-    //capacity.setDesired(instances.size());
-    if(instances.size()>=(Integer) minSize){
+    if (instances.size() >= (Integer) minSize) {
       capacity.setDesired(instances.size());
-    }else {
+    } else {
       capacity.setDesired((Integer) minSize);
     }
     serverGroup.setCapacity(capacity);
-
+    serverGroup.setInstanceCounts(buildInstanceCounts(serverGroup));
     serverGroup.setResult(serverGroupCache.getAttributes());
 
     // build image info
@@ -240,6 +241,30 @@ public class AliCloudClusterProvider
     serverGroup.setBuildInfo(buildInfo);
 
     return serverGroup;
+  }
+
+  private ServerGroup.InstanceCounts buildInstanceCounts(AliCloudServerGroup serverGroup) {
+    Map<String, Integer> countMap = new HashMap<>(16);
+    ServerGroup.InstanceCounts instanceCounts = new ServerGroup.InstanceCounts();
+    instanceCounts.setTotal(serverGroup.getInstances().size());
+    serverGroup
+      .getInstances()
+      .forEach(
+        instance -> {
+          if (instance.getHealthState().equals(HealthState.Up)) {
+            countMap.put("up", countMap.getOrDefault("up", 0) + 1);
+          }
+          if (instance.getHealthState().equals(HealthState.Down)) {
+            countMap.put("down", countMap.getOrDefault("down", 0) + 1);
+          }
+          if (instance.getHealthState().equals(HealthState.Unknown)) {
+            countMap.put("unKnown", countMap.getOrDefault("unKnown", 0) + 1);
+          }
+        });
+    instanceCounts.setUp(countMap.getOrDefault("up", 0));
+    instanceCounts.setDown(countMap.getOrDefault("down", 0));
+    instanceCounts.setUnknown(countMap.getOrDefault("unKnown", 0));
+    return instanceCounts;
   }
 
   @Override

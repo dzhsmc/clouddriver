@@ -172,11 +172,15 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
       }
 
       List<String> loadBalancerIds = sg.getLoadBalancerIds();
-      sg.getVServerGroups().forEach(vServerGroup -> {
-        if(!loadBalancerIds.contains(vServerGroup.getLoadBalancerId())){
-          loadBalancerIds.add(vServerGroup.getLoadBalancerId());
-        }
-      });
+      if (sg.getVServerGroups() != null) {
+        sg.getVServerGroups()
+          .forEach(
+            vServerGroup -> {
+              if (!loadBalancerIds.contains(vServerGroup.getLoadBalancerId())) {
+                loadBalancerIds.add(vServerGroup.getLoadBalancerId());
+              }
+            });
+      }
       List<DescribeLoadBalancerAttributeResponse> loadBalancerAttributes = new ArrayList<>();
       for (String loadBalancerId : loadBalancerIds) {
         try {

@@ -24,10 +24,8 @@ import com.netflix.spinnaker.cats.cache.CacheData;
 import com.netflix.spinnaker.clouddriver.alicloud.cache.Keys;
 import com.netflix.spinnaker.kork.web.exceptions.InvalidRequestException;
 import groovy.util.logging.Slf4j;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import javax.servlet.http.HttpServletRequest;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,28 +46,26 @@ public class AliCloudImageController {
   }
 
   @RequestMapping(value = "/find", method = RequestMethod.GET)
-  List<Image> list(LookupOptions lookupOptions) {
+  List<Image> list(LookupOptions lookupOptions, HttpServletRequest request) {
     String glob = lookupOptions.getQ();
     if (StringUtils.isAllBlank(glob) && glob.length() < 3) {
       throw new InvalidRequestException("Lost search condition or length less 3");
     }
     glob = "*" + glob + "*";
     String imageSearchKey =
-        Keys.getImageKey(
-            glob,
-            StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account,
-            StringUtils.isAllBlank(lookupOptions.region) ? "*" : lookupOptions.region);
+      Keys.getImageKey(
+        glob,
+        StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account,
+        StringUtils.isAllBlank(lookupOptions.region) ? "*" : lookupOptions.region);
     Collection<String> imageIdentifiers = cacheView.filterIdentifiers(IMAGES.ns, imageSearchKey);
     Collection<CacheData> images = cacheView.getAll(IMAGES.ns, imageIdentifiers, null);
     String nameKey =
-        Keys.getNamedImageKey(
-            StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account, glob);
+      Keys.getNamedImageKey(
+        StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account, glob);
     Collection<String> nameImageIdentifiers = cacheView.filterIdentifiers(NAMED_IMAGES.ns, nameKey);
     Collection<CacheData> nameImages =
-        cacheView.getAll(NAMED_IMAGES.ns, nameImageIdentifiers, null);
-    List<Image> render = render(nameImages, images);
-    // List<Image> filter = filter(render, extractTagFilters(request));
-    return render;
+      cacheView.getAll(NAMED_IMAGES.ns, nameImageIdentifiers, null);
+    return filter(render(nameImages, images), extractTagFilters(request));
   }
 
   private static List<Image> filter(List<Image> namedImages, Map<String, String> tagFilters) {
@@ -82,19 +78,21 @@ public class AliCloudImageController {
         filter.add(namedImage);
       }
     }
-    return namedImages;
+    return filter;
   }
 
   private static boolean checkInclude(Image image, Map<String, String> tagFilters) {
     boolean flag = false;
-    List<Tag> tags = (List) image.getAttributes().get("tags");
-    for (Tag tag : tags) {
-      String tagKey = tag.getTagKey();
-      String tagValue = tag.getTagValue();
-      if (StringUtils.isNotEmpty(tagFilters.get(tagKey))
-          || tagFilters.get(tagKey).equalsIgnoreCase(tagValue)) {
-        flag = true;
-        break;
+    List<Map> tags = (List) image.getAttributes().get("tags");
+    if (tags != null) {
+      for (Map tag : tags) {
+        String tagKey = tag.get("tagKey").toString();
+        String tagValue = tag.get("tagValue").toString();
+        if (StringUtils.isNotEmpty(tagFilters.get(tagKey))
+          && tagFilters.get(tagKey).equalsIgnoreCase(tagValue)) {
+          flag = true;
+          break;
+        }
       }
     }
     return flag;
@@ -114,19 +112,19 @@ public class AliCloudImageController {
     return list;
   }
 
-  // private static Map<String, String> extractTagFilters(HttpServletRequest request) {
-  //  Map<String, String> parameters = new HashMap<>(16);
-  //  Enumeration<String> parameterNames = request.getParameterNames();
-  //  while (parameterNames.hasMoreElements()) {
-  //    String parameterName = parameterNames.nextElement();
-  //    if (parameterName.toLowerCase().startsWith("tag:")) {
-  //      parameters.put(
-  //          parameterName.replaceAll("tag:", "").toLowerCase(),
-  //          request.getParameter(parameterName));
-  //    }
-  //  }
-  //  return parameters;
-  // }
+  private static Map<String, String> extractTagFilters(HttpServletRequest request) {
+    Map<String, String> parameters = new HashMap<>(16);
+    Enumeration<String> parameterNames = request.getParameterNames();
+    while (parameterNames.hasMoreElements()) {
+      String parameterName = parameterNames.nextElement();
+      if (parameterName.toLowerCase().startsWith("tag:")) {
+        parameters.put(
+          parameterName.replaceAll("tag:", "").toLowerCase(),
+          request.getParameter(parameterName));
+      }
+    }
+    return parameters;
+  }
 
   @Data
   public static class Image {

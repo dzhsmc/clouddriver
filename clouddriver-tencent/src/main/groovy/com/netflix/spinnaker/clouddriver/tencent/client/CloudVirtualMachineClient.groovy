@@ -73,16 +73,23 @@ class CloudVirtualMachineClient extends AbstractTencentServiceClient {
   }
 
   def getInstances(List<String> instanceIds=[]) {
-    iterQuery { offset, limit ->
-      def request = new DescribeInstancesRequest(offset: offset, limit: limit)
-      if (instanceIds) {
+    if (instanceIds) {
+      iterQuery { offset, limit ->
         def end = Math.min(offset+limit-1 as Integer, instanceIds.size()-1)
         if (offset < end) {
+          def request = new DescribeInstancesRequest(offset: 0, limit: 100)
           request.instanceIds = instanceIds[offset..end]
+          def response = client.DescribeInstances request
+          log.info "describeinstance with request id ${response.requestId}"
+          response.instanceSet
         }
-      }
-      def response = client.DescribeInstances request
-      response.instanceSet
-    } as List<Instance>
+      } as List<Instance>
+    } else {
+      iterQuery { offset, limit ->
+        def request = new DescribeInstancesRequest(offset: offset, limit: limit)
+        def response = client.DescribeInstances request
+        response.instanceSet
+      } as List<Instance>
+    }
   }
 }
