@@ -30,16 +30,13 @@ import com.netflix.spinnaker.clouddriver.deploy.DeploymentResult;
 import com.netflix.spinnaker.clouddriver.model.ClusterProvider;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import groovy.util.logging.Slf4j;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
+import java.text.SimpleDateFormat;
+
 
 @Slf4j
 public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation<DeploymentResult> {
@@ -288,6 +285,25 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
               && !CollectionUtils.isEmpty(describeScheduledTasksResponse.getScheduledTasks())) {
               for (DescribeScheduledTasksResponse.ScheduledTask scheduledTask : describeScheduledTasksResponse.getScheduledTasks()) {
                 CreateScheduledTaskRequest createScheduledTaskRequest = objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
+                String launchTime = createScheduledTaskRequest.getLaunchTime();
+                if (launchTime != null) {
+                  SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+                  Date launchTimeDate = df.parse(launchTime);
+                  Calendar launchTimeCalendar = Calendar.getInstance();
+                  launchTimeCalendar.setTime(new Date());
+                  Calendar oldCalendar = Calendar.getInstance();
+                  oldCalendar.setTime(launchTimeDate);
+                  if (launchTimeDate.before(new Date())) {
+                    launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE));
+                    launchTimeCalendar.set(
+                      Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY));
+                    if (launchTimeCalendar.getTime().before(new Date())) {
+                      launchTimeCalendar.add(Calendar.DATE, 1);
+                    }
+                    createScheduledTaskRequest.setLaunchTime(
+                      df.format(launchTimeCalendar.getTime()));
+                  }
+                }
                 createScheduledTaskRequest.setSysRegionId(region);
                 createScheduledTaskRequest.setScheduledAction(createScalingRuleResponse.getScalingRuleAri());
                 createScheduledTaskRequest.setScheduledTaskName("");
@@ -387,7 +403,8 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       }
 
     } catch (Exception e) {
-      log.info(e.getMessage());
+      log.error("CopySourceServerGroupRelatedResource Error: " + description.getSource().getAsgName());
+      log.error(e.getMessage());
       return;
     }
 
