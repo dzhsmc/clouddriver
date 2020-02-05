@@ -84,15 +84,19 @@ public class AliCloudImageController {
   private static boolean checkInclude(Image image, Map<String, String> tagFilters) {
     boolean flag = false;
     List<Map> tags = (List) image.getAttributes().get("tags");
-    if (tags != null) {
-      for (Map tag : tags) {
-        String tagKey = tag.get("tagKey").toString();
-        String tagValue = tag.get("tagValue").toString();
-        if (StringUtils.isNotEmpty(tagFilters.get(tagKey))
-          && tagFilters.get(tagKey).equalsIgnoreCase(tagValue)) {
-          flag = true;
-          break;
-        }
+    Map<String, String> imageMap = new HashMap<>(tags.size());
+    for (Map tag : tags) {
+      imageMap.put(tag.get("tagKey").toString(), tag.get("tagValue").toString());
+    }
+    for(Map.Entry<String, String> entry : tagFilters.entrySet()){
+      String tagKey = entry.getKey();
+      String tagValue = entry.getValue();
+      if (StringUtils.isNotEmpty(imageMap.get(tagKey))
+        && imageMap.get(tagKey).equalsIgnoreCase(tagValue)) {
+        flag = true;
+      } else {
+        flag = false;
+        break;
       }
     }
     return flag;
