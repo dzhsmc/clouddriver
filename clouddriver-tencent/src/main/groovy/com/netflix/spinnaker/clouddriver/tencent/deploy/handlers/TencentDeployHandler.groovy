@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import groovy.time.TimeCategory
 
+
 /*
 curl -X POST \
   http://localhost:7002/tencent/ops \
@@ -202,10 +203,18 @@ class TencentDeployHandler implements DeployHandler<TencentDeployDescription> {
             // schedule action just run for once, and had finished
             continue
           } else {
-            log.info('scheduled action is for once, set new start time to current time')
-            use (TimeCategory) {
-              new_start_time = current_time + 60.minutes
+            log.info('scheduled action is not for one time, set new start time to current time')
+            Calendar launchTimeCalendar = Calendar.getInstance()
+            launchTimeCalendar.setTime(current_time)
+            Calendar oldCalendar = Calendar.getInstance()
+            oldCalendar.setTime(original_start_time)
+            launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE))
+            launchTimeCalendar.set(Calendar.SECOND, oldCalendar.get(Calendar.SECOND))
+            launchTimeCalendar.set(Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY))
+            if (launchTimeCalendar.getTime().before(current_time)) {
+              launchTimeCalendar.add(Calendar.DATE, 1)
             }
+            new_start_time = launchTimeCalendar.getTime()
           }
         } else {
           log.info('scheduled action is not trigger, use original start time')
