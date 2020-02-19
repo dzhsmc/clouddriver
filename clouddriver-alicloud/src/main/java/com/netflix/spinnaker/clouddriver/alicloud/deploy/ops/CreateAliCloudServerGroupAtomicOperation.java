@@ -293,7 +293,10 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                   launchTimeCalendar.setTime(new Date());
                   Calendar oldCalendar = Calendar.getInstance();
                   oldCalendar.setTime(launchTimeDate);
-                  if (launchTimeDate.before(new Date())) {
+                  Calendar down8Calendar = Calendar.getInstance();
+                  down8Calendar.setTime(new Date());
+                  down8Calendar.add(Calendar.HOUR, -8);// 24小时制
+                  if (launchTimeDate.before(down8Calendar.getTime())) {
                     launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE));
                     launchTimeCalendar.set(
                       Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY));
