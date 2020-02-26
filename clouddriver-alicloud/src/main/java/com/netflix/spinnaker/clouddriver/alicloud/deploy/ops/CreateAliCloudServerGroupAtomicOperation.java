@@ -186,6 +186,9 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
         if (scalingGroup.getMinSize() != null) {
           request.setMinSize(scalingGroup.getMinSize());
         }
+        if (scalingGroup.getActiveCapacity() != null) {
+          request.setDesiredCapacity(scalingGroup.getActiveCapacity());
+        }
       } catch (Exception e) {
         log.info(e.getMessage());
         throw new AliCloudException(e.getMessage());
@@ -284,6 +287,14 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
             while (describeScheduledTasksResponse != null
               && !CollectionUtils.isEmpty(describeScheduledTasksResponse.getScheduledTasks())) {
               for (DescribeScheduledTasksResponse.ScheduledTask scheduledTask : describeScheduledTasksResponse.getScheduledTasks()) {
+                //ali-ess-sdk-2.3.3设计有问题，封装request之前需要处理下
+                if (StringUtils.isNotEmpty(scheduledTask.getScheduledAction())) {
+                  scheduledTask.setScheduledAction(createScalingRuleResponse.getScalingRuleAri());
+                  scheduledTask.setScalingGroupId(null);
+                  scheduledTask.setMaxValue(null);
+                  scheduledTask.setMinValue(null);
+                  scheduledTask.setDesiredCapacity(null);
+                }
                 CreateScheduledTaskRequest createScheduledTaskRequest = objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
                 String launchTime = createScheduledTaskRequest.getLaunchTime();
                 if (launchTime != null) {
@@ -308,7 +319,6 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                   }
                 }
                 createScheduledTaskRequest.setSysRegionId(region);
-                createScheduledTaskRequest.setScheduledAction(createScalingRuleResponse.getScalingRuleAri());
                 createScheduledTaskRequest.setScheduledTaskName("");
                 CreateScheduledTaskResponse createScheduledTaskResponse = client.getAcsResponse(createScheduledTaskRequest);
               }
