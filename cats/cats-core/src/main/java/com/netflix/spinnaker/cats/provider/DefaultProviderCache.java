@@ -39,7 +39,7 @@ import java.util.Set;
  * This implementation will handle aggregating results from multiple sources, and
  * the view methods will merge relationships from all sources into a single relationship.
  */
-public class DefaultProviderCache  {
+public class DefaultProviderCache implements ProviderCache {
 
   private static final String ALL_ID = "_ALL_"; //dirty = true
   private static final Map<String, Object> ALL_ATTRIBUTE = Collections.unmodifiableMap(new HashMap<String, Object>(1) {{
