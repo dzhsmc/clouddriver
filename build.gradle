@@ -20,7 +20,7 @@ buildscript {
     junitPlatformVersion = "1.0.2"
   }
   repositories {
-    jcenter()
+    jcenter { url "https://jcenter.bintray.com/" }
     maven { url "https://spinnaker.bintray.com/gradle" }
     maven { url "https://plugins.gradle.org/m2/" }
   }

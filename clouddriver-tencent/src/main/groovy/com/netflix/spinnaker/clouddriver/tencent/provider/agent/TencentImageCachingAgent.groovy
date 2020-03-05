@@ -83,6 +83,7 @@ class TencentImageCachingAgent extends AbstractTencentCachingAgent {
       namedImages[namedImageKey].attributes.osPlatform = tencentImage.osPlatform
       namedImages[namedImageKey].attributes.snapshotSet = tencentImage.snapshotSet
       namedImages[namedImageKey].attributes.createdTime = tencentImage.createdTime
+      namedImages[namedImageKey].attributes.imageId = tencentImage.imageId
       namedImages[namedImageKey].relationships[IMAGES.ns].add imageKey
       null
     }

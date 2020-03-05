@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
-
 import javax.servlet.http.HttpServletRequest
 
 import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.IMAGES
@@ -75,7 +74,7 @@ class TencentNamedImageLookupController {
       NAMED_IMAGES.ns, namedImageIdentifiers, RelationshipCacheFilter.include(IMAGES.ns))
     Collection<CacheData> matchesByImageId = cacheView.getAll(IMAGES.ns, imageIdentifiers)
 
-    return render(matchesByName, matchesByImageId, lookupOptions.q, lookupOptions.region)
+    return render(matchesByName, matchesByImageId, lookupOptions.q, lookupOptions.region, request)
   }
 
   def validateLookupOptions(LookupOptions lookupOptions) {
@@ -92,7 +91,7 @@ class TencentNamedImageLookupController {
 
   private List<NamedImage> render(
     Collection<CacheData> namedImages, Collection<CacheData> images,
-    String requestedName = null, String requiredRegion = null
+    String requestedName = null, String requiredRegion = null, HttpServletRequest request
   ) {
     Map<String, NamedImage> byImageName = [:].withDefault { new NamedImage(imageName: it) }
 
@@ -123,12 +122,20 @@ class TencentNamedImageLookupController {
       namedImage.attributes.type = image["type"]
       namedImage.attributes.snapshotSet =  it.attributes.snapshotSet
       namedImage.attributes.createdTime = image["createdTime"]
+      namedImage.attributes.name = image["name"]
       namedImage.accounts.add namedImageKeyParts.account
       namedImage.imgIds[keyParts.region].add keyParts.imageId
     }
 
+    String imageName
+    if(request){
+      imageName = request.getParameter("imageName")
+    }
+
     List<NamedImage> results = byImageName.values().findAll {
       requiredRegion ? it.imgIds.containsKey(requiredRegion) : true
+    }findAll{
+      imageName ? imageName.equalsIgnoreCase(it.imageName) : true
     }
 
     results
