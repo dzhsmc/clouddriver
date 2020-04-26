@@ -56,8 +56,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAware, OnDemandAgent {
+
+  private final Logger log =
+    LoggerFactory.getLogger(AliCloudLoadBalancerCachingAgent.class);
 
   private AliProvider aliProvider;
   private AliCloudClientProvider aliCloudClientProvider;
@@ -131,8 +136,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
       loadBalancers.addAll(queryResponse.getLoadBalancers());
 
     } catch (ServerException e) {
+      log.error(e.getMessage());
       e.printStackTrace();
     } catch (ClientException e) {
+      log.error(e.getMessage());
       e.printStackTrace();
     }
 
@@ -291,8 +298,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               httpsListenerAttributeResponse = client.getAcsResponse(httpsListenerAttributeRequest);
               listenerMap = objectMapper.convertValue(httpsListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             } catch (ClientException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             }
 
@@ -307,8 +316,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               tcpListenerAttributeResponse = client.getAcsResponse(tcpListenerAttributeRequest);
               listenerMap = objectMapper.convertValue(tcpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             } catch (ClientException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             }
 
@@ -323,8 +334,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               udpListenerAttributeResponse = client.getAcsResponse(udpListenerAttributeRequest);
               listenerMap = objectMapper.convertValue(udpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             } catch (ClientException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             }
 
@@ -339,8 +352,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
               httpListenerAttributeResponse = client.getAcsResponse(httpListenerAttributeRequest);
               listenerMap = objectMapper.convertValue(httpListenerAttributeResponse, Map.class);
             } catch (ServerException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             } catch (ClientException e) {
+              log.error("Load LB Error: "+loadBalancerName);
               e.printStackTrace();
             }
             break;
@@ -361,8 +376,10 @@ public class AliCloudLoadBalancerCachingAgent implements CachingAgent, AccountAw
           describeVServerGroupsResponse.getVServerGroups();
         map.put("vServerGroups", vServerGroups);
       } catch (ServerException e) {
+        log.error(loadBalancer.getLoadBalancerId());
         e.printStackTrace();
       } catch (ClientException e) {
+        log.error(loadBalancer.getLoadBalancerId());
         e.printStackTrace();
       }
       list.add(

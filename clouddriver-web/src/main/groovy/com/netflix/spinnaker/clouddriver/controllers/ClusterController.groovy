@@ -223,6 +223,7 @@ class ClusterController {
 
         return scopeMatch && enableMatch
       } ?: []
+      log.info("ServerGroups size is: " + serverGroups.size())
 
       if (shouldExpand) {
         serverGroups.forEach { sg -> needsExpand[sg] = true }
@@ -246,6 +247,9 @@ class ClusterController {
 
     if (!sortedServerGroups) {
       throw new NotFoundException("No server groups found (account: ${account}, location: ${scope}, cluster: ${clusterName}, type: ${cloudProvider})")
+      log.error("No server groups found (account: ${account}, location: ${scope}, cluster: ${clusterName}, type: ${cloudProvider})")
+    }else{
+      log.info("sortedServerGroups size is: " + sortedServerGroups.size())
     }
 
     switch (tsg) {

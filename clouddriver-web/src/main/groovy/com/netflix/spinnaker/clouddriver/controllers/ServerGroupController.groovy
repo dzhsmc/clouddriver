@@ -91,6 +91,7 @@ class ServerGroupController {
 
     Boolean shouldIncludeDetails = Boolean.valueOf(includeDetails)
 
+
     def matches = (Set<ServerGroup>) clusterProviders.findResults { provider ->
       requestQueue.execute(name, { provider.getServerGroup(account, region, name, shouldIncludeDetails) })
     }

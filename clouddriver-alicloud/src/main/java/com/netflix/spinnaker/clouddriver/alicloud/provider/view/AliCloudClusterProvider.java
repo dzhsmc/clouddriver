@@ -18,6 +18,7 @@ package com.netflix.spinnaker.clouddriver.alicloud.provider.view;
 import static com.netflix.spinnaker.clouddriver.core.provider.agent.Namespace.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.netflix.spinnaker.cats.cache.Cache;
 import com.netflix.spinnaker.cats.cache.CacheData;
 import com.netflix.spinnaker.clouddriver.alicloud.AliCloudProvider;
@@ -46,6 +47,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Component
 public class AliCloudClusterProvider
@@ -56,6 +60,11 @@ public class AliCloudClusterProvider
   private final Cache cacheView;
 
   private final AliCloudProvider provider;
+
+  static final Gson gson = new Gson();
+
+  private final Logger log =
+    LoggerFactory.getLogger(AliCloudClusterProvider.class);
 
   @Autowired
   public AliCloudClusterProvider(
@@ -130,7 +139,9 @@ public class AliCloudClusterProvider
     String account, String region, String name, boolean includeDetails) {
     String serverGroupKey = Keys.getServerGroupKey(name, account, region);
     CacheData serverGroupData = cacheView.get(SERVER_GROUPS.ns, serverGroupKey);
+    log.info("yejingtao bug log getServerGroup serverGroupKey "+ serverGroupKey + " " + serverGroupData);
     Collection<String> allHealthyKeys = cacheView.getIdentifiers(HEALTH.ns);
+    log.info("yejingtao bug log getServerGroup allHealthyKeys "+ allHealthyKeys.size());
     if (serverGroupData == null) {
       return null;
     }

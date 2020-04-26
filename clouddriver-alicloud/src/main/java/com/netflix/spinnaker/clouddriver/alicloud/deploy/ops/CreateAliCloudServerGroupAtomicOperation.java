@@ -140,10 +140,10 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
     try {
       enableScalingGroupResponse = client.getAcsResponse(enableScalingGroupRequest);
     } catch (ServerException e) {
-      log.info(e.getMessage());
+      log.error(e.getMessage());
       throw new AliCloudException(e.getMessage());
     } catch (ClientException e) {
-      log.info(e.getMessage());
+      log.error(e.getMessage());
       throw new AliCloudException(e.getMessage());
     }
 
@@ -458,7 +458,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       }
 
     } catch (Exception e) {
-      log.info(e.getMessage());
+      log.error(e.getMessage());
       return;
     }
   }
@@ -470,10 +470,15 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
     launchTimeCalendar.setTime(new Date());
     Calendar oldCalendar = Calendar.getInstance();
     oldCalendar.setTime(launchTimeDate);
-    if (launchTimeDate.before(new Date())) {
+
+    Calendar down8Calendar = Calendar.getInstance();
+    down8Calendar.setTime(new Date());
+    down8Calendar.add(Calendar.HOUR, -8);// 24小时制
+
+    if (launchTimeDate.before(down8Calendar.getTime())) {
       launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE));
       launchTimeCalendar.set(Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY));
-      if (launchTimeCalendar.getTime().before(new Date())) {
+      if (launchTimeCalendar.getTime().before(down8Calendar.getTime())) {
         launchTimeCalendar.add(Calendar.DATE, 1);
       }
       return df.format(launchTimeCalendar.getTime());
