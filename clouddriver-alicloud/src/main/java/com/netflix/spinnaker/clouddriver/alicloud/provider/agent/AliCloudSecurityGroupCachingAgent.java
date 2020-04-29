@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.util.CollectionUtils;
 
 public class AliCloudSecurityGroupCachingAgent
     implements CachingAgent, OnDemandAgent, AccountAware {
@@ -75,17 +76,28 @@ public class AliCloudSecurityGroupCachingAgent
   public CacheResult loadData(ProviderCache providerCache) {
     Map<String, Collection<CacheData>> resultMap = new HashMap<>(16);
     List<CacheData> securityGroupDatas = new ArrayList<>();
-
+    int pageNumber = 1;
+    int pageSize = 50;
     DescribeSecurityGroupsRequest securityGroupsRequest = new DescribeSecurityGroupsRequest();
-    securityGroupsRequest.setPageSize(50);
     DescribeSecurityGroupsResponse securityGroupsResponse;
 
     try {
-      securityGroupsResponse = client.getAcsResponse(securityGroupsRequest);
-      for (SecurityGroup securityGroup : securityGroupsResponse.getSecurityGroups()) {
-        securityGroupDatas.add(buildCatchData(securityGroup));
-      }
+      while (true) {
 
+        securityGroupsRequest.setPageSize(pageSize);
+        securityGroupsRequest.setPageNumber(pageNumber);
+        securityGroupsResponse = client.getAcsResponse(securityGroupsRequest);
+
+        if (!CollectionUtils.isEmpty(securityGroupsResponse.getSecurityGroups())){
+          pageNumber = pageNumber + 1;
+          for (SecurityGroup securityGroup : securityGroupsResponse.getSecurityGroups()) {
+            securityGroupDatas.add(buildCatchData(securityGroup));
+          }
+        } else {
+          break;
+        }
+
+      }
     } catch (ServerException e) {
       e.printStackTrace();
     } catch (ClientException e) {
