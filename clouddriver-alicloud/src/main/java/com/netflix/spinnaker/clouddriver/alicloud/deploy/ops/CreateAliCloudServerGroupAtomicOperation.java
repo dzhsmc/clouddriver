@@ -185,6 +185,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
         }
         if (scalingGroup.getMinSize() != null) {
           request.setMinSize(scalingGroup.getMinSize());
+          request.setDesiredCapacity(scalingGroup.getMinSize());
         }
         if (scalingGroup.getActiveCapacity() != null) {
           request.setDesiredCapacity(scalingGroup.getActiveCapacity());
@@ -345,8 +346,13 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                 }
                 createScheduledTaskRequest.setSysRegionId(region);
                 createScheduledTaskRequest.setScheduledTaskName("");
-                CreateScheduledTaskResponse createScheduledTaskResponse =
-                  client.getAcsResponse(createScheduledTaskRequest);
+                try{
+                  CreateScheduledTaskResponse createScheduledTaskResponse =
+                    client.getAcsResponse(createScheduledTaskRequest);
+                }catch(Exception e){
+                  log.error(e.getMessage());
+                }
+
               }
 
               taskPageNumber = taskPageNumber + 1;
