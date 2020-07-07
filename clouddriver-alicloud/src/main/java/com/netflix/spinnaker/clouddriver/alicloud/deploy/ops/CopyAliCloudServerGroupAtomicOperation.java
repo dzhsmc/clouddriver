@@ -153,6 +153,12 @@ public class CopyAliCloudServerGroupAtomicOperation implements AtomicOperation<D
             : (description.getCapacity().getMin() != null
                 ? description.getCapacity().getMin()
                 : scalingGroup.getMinSize()));
+    request.setDesiredCapacity(
+      description.getMinSize() != null
+        ? description.getMinSize()
+        : (description.getCapacity().getMin() != null
+        ? description.getCapacity().getMin()
+        : scalingGroup.getMinSize()));
     request.setClientToken(description.getClientToken());
     if (description.getDBInstanceIds() != null) {
       request.setDBInstanceIds(description.getDBInstanceIds());
