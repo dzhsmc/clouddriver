@@ -17,6 +17,8 @@
 package com.netflix.spinnaker.clouddriver.alicloud.deploy.converters;
 
 import com.aliyuncs.ess.model.v20140828.CreateScalingGroupRequest;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.netflix.spinnaker.clouddriver.alicloud.AliCloudOperation;
 import com.netflix.spinnaker.clouddriver.alicloud.common.ClientFactory;
 import com.netflix.spinnaker.clouddriver.alicloud.deploy.description.BasicAliCloudDeployDescription;
@@ -41,6 +43,7 @@ public class CreateAliCloudServerGroupAtomicOperationConverter
 
   private final List<ClusterProvider> clusterProviders;
 
+  static final Gson gson = new Gson();
   @Autowired
   public CreateAliCloudServerGroupAtomicOperationConverter(
     ClientFactory clientFactory, List<ClusterProvider> clusterProviders) {
@@ -56,6 +59,13 @@ public class CreateAliCloudServerGroupAtomicOperationConverter
 
   @Override
   public BasicAliCloudDeployDescription convertDescription(Map input) {
+    ArrayList<Map> scalingConfigurations =(ArrayList) input.get("scalingConfigurations");
+    for(Map map:scalingConfigurations){
+      if(!(map.get("tags") instanceof String)){
+        map.put("tags", gson.toJson(map.get("tags")));
+      }
+    }
+    input.put("scalingConfigurations",scalingConfigurations);
     BasicAliCloudDeployDescription description =
       getObjectMapper().convertValue(input, BasicAliCloudDeployDescription.class);
 
