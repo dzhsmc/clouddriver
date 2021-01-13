@@ -16,23 +16,27 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
-import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3.ProcessStats;
-import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.StartCloudFoundryServerGroupDescription;
-import com.netflix.spinnaker.clouddriver.helpers.OperationPoller;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.function.Supplier;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.atIndex;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class StartCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFoundryAtomicOperationTest{
-  private StartCloudFoundryServerGroupDescription desc = new StartCloudFoundryServerGroupDescription();
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryApiException;
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3.ProcessStats;
+import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.StartCloudFoundryServerGroupDescription;
+import com.netflix.spinnaker.clouddriver.data.task.Task;
+import com.netflix.spinnaker.clouddriver.helpers.OperationPoller;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class StartCloudFoundryServerGroupAtomicOperationTest
+    extends AbstractCloudFoundryAtomicOperationTest {
+  private StartCloudFoundryServerGroupDescription desc =
+      new StartCloudFoundryServerGroupDescription();
 
   StartCloudFoundryServerGroupAtomicOperationTest() {
     super();
@@ -49,13 +53,15 @@ class StartCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFound
     OperationPoller poller = mock(OperationPoller.class);
 
     //noinspection unchecked
-    when(poller.waitForOperation(any(Supplier.class), any(), anyLong(), any(), any(), any())).thenReturn(ProcessStats.State.RUNNING);
+    when(poller.waitForOperation(any(Supplier.class), any(), any(), any(), any(), any()))
+        .thenReturn(ProcessStats.State.RUNNING);
 
-    StartCloudFoundryServerGroupAtomicOperation op = new StartCloudFoundryServerGroupAtomicOperation(poller, desc);
+    StartCloudFoundryServerGroupAtomicOperation op =
+        new StartCloudFoundryServerGroupAtomicOperation(poller, desc);
 
     assertThat(runOperation(op).getHistory())
-      .has(status("Starting 'myapp'"), atIndex(1))
-      .has(status("Started 'myapp'"), atIndex(2));
+        .has(status("Starting 'myapp'"), atIndex(1))
+        .has(status("Started 'myapp'"), atIndex(2));
   }
 
   @Test
@@ -63,12 +69,21 @@ class StartCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFound
     OperationPoller poller = mock(OperationPoller.class);
 
     //noinspection unchecked
-    when(poller.waitForOperation(any(Supplier.class), any(), anyLong(), any(), any(), any())).thenReturn(ProcessStats.State.CRASHED);
+    when(poller.waitForOperation(any(Supplier.class), any(), any(), any(), any(), any()))
+        .thenReturn(ProcessStats.State.CRASHED);
 
-    StartCloudFoundryServerGroupAtomicOperation op = new StartCloudFoundryServerGroupAtomicOperation(poller, desc);
+    StartCloudFoundryServerGroupAtomicOperation op =
+        new StartCloudFoundryServerGroupAtomicOperation(poller, desc);
 
-    assertThat(runOperation(op).getHistory())
-      .has(status("Starting 'myapp'"), atIndex(1))
-      .has(status("Failed to start 'myapp' which instead crashed"), atIndex(2));
+    Task task = runOperation(op);
+    List<Object> resultObjects = task.getResultObjects();
+    assertThat(resultObjects.size()).isEqualTo(1);
+    Object o = resultObjects.get(0);
+    assertThat(o).isInstanceOf(Map.class);
+    Object ex = ((Map) o).get("EXCEPTION");
+    assertThat(ex).isInstanceOf(CloudFoundryApiException.class);
+    assertThat(((CloudFoundryApiException) ex).getMessage())
+        .isEqualTo(
+            "Cloud Foundry API returned with error(s): Failed to start 'myapp' which instead crashed");
   }
 }

@@ -36,6 +36,7 @@ import com.netflix.spinnaker.clouddriver.model.securitygroups.SecurityGroupRule
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
 import groovy.transform.Canonical
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 
 import static com.netflix.spinnaker.clouddriver.aws.cache.Keys.Namespace.SECURITY_GROUPS
@@ -52,7 +53,7 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
   @Autowired
   AmazonSecurityGroupProvider(AccountCredentialsProvider accountCredentialsProvider,
                               Cache cacheView,
-                              ObjectMapper objectMapper) {
+                              @Qualifier("amazonObjectMapper") ObjectMapper objectMapper) {
     this.accountCredentialsProvider = accountCredentialsProvider
     this.cacheView = cacheView
     this.objectMapper = objectMapper
@@ -139,6 +140,7 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
     }
   }
 
+  @Override
   AmazonSecurityGroup getById(String account, String region, String securityGroupId, String vpcId) {
     getAllMatchingKeyPattern(Keys.getSecurityGroupKey('*', securityGroupId, region, account, vpcId), true)[0]
   }
@@ -186,7 +188,8 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
       description: securityGroup.description,
       accountName: account,
       region: region,
-      inboundRules: inboundRules
+      inboundRules: inboundRules,
+      tags: securityGroup.tags
     )
   }
 
@@ -195,7 +198,8 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
       new IpRangeRule(
         range: rule.range,
         protocol: rule.protocol,
-        portRanges: rule.portRanges
+        portRanges: rule.portRanges,
+        description: rule.description
       )
 
     }.sort()
@@ -266,7 +270,8 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
         rules.put(key, [
           range     : new AddressableRange(ip: rangeParts[0], cidr: "/${rangeParts[1]}"),
           protocol  : permission.ipProtocol,
-          portRanges: [] as SortedSet
+          portRanges: [] as SortedSet,
+          description: ipRange.description
         ])
       }
       rules.get(key).portRanges += new Rule.PortRange(startPort: permission.fromPort, endPort: permission.toPort)
@@ -278,7 +283,8 @@ class AmazonSecurityGroupProvider implements SecurityGroupProvider<AmazonSecurit
         rules.put(key, [
           range     : new AddressableRange(ip: rangeParts[0], cidr: "/${rangeParts[1]}"),
           protocol  : permission.ipProtocol,
-          portRanges: [] as SortedSet
+          portRanges: [] as SortedSet,
+          description: ipRange.description
         ])
       }
       rules.get(key).portRanges += new Rule.PortRange(startPort: permission.fromPort, endPort: permission.toPort)

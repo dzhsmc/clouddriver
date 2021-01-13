@@ -17,10 +17,12 @@
 package com.netflix.spinnaker.clouddriver.data.task
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.netflix.spinnaker.clouddriver.core.ClouddriverHostname
 import groovy.transform.CompileStatic
 import groovy.transform.Immutable
 
+import javax.annotation.Nonnull
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.logging.Logger
 
@@ -30,8 +32,10 @@ public class DefaultTask implements Task {
 
   final String id
   final String ownerId = ClouddriverHostname.ID
+  final String requestId = null
   private final Deque<Status> statusHistory = new ConcurrentLinkedDeque<Status>()
   private final Deque<Object> resultObjects = new ConcurrentLinkedDeque<Object>()
+  private final Deque<SagaId> sagaIdentifiers = new ConcurrentLinkedDeque<>()
   final long startTimeMs = System.currentTimeMillis()
 
   public String getOwnerId() {
@@ -65,6 +69,11 @@ public class DefaultTask implements Task {
     statusHistory.addLast(currentStatus().update(TaskState.FAILED))
   }
 
+  @Override
+  void fail(boolean retryable) {
+    statusHistory.addLast(currentStatus().update(retryable ? TaskState.FAILED_RETRYABLE : TaskState.FAILED))
+  }
+
   public Status getStatus() {
     currentStatus()
   }
@@ -87,6 +96,26 @@ public class DefaultTask implements Task {
 
   private DefaultTaskStatus currentStatus() {
     statusHistory.getLast() as DefaultTaskStatus
+  }
+
+  @Override
+  void addSagaId(@Nonnull SagaId sagaId) {
+    sagaIdentifiers.addLast(sagaId)
+  }
+
+  @Override
+  Set<SagaId> getSagaIds() {
+    return sagaIdentifiers.toSet()
+  }
+
+  @Override
+  boolean hasSagaIds() {
+    return !sagaIdentifiers.isEmpty()
+  }
+
+  @Override
+  void retry() {
+    statusHistory.addLast(currentStatus().update(TaskState.STARTED))
   }
 }
 
@@ -115,6 +144,12 @@ class TaskDisplayStatus implements Status {
 
   @JsonIgnore
   Boolean isFailed() { taskStatus.isFailed() }
+
+  @JsonIgnore
+  @Override
+  Boolean isRetryable() {
+    return taskStatus.isRetryable()
+  }
 }
 
 @Immutable
@@ -131,11 +166,19 @@ class DefaultTaskStatus implements Status {
     new DefaultTaskStatus(phase, status, state)
   }
 
-  Boolean isComplete() { state.completed }
+  @JsonProperty
+  public Boolean isComplete() { state.isCompleted() }
 
-  Boolean isCompleted() { state.completed }
+  @JsonProperty
+  public Boolean isCompleted() { state.isCompleted() }
 
-  Boolean isFailed() { state.failed }
+  @JsonProperty
+  public Boolean isFailed() { state.isFailed() }
+
+  @JsonProperty
+  public Boolean isRetryable() {
+    return state.isRetryable()
+  }
 
   DefaultTaskStatus update(String phase, String status) {
     ensureUpdateable()
@@ -152,5 +195,4 @@ class DefaultTaskStatus implements Status {
       throw new IllegalStateException("Task is already completed! No further updates allowed!")
     }
   }
-
 }

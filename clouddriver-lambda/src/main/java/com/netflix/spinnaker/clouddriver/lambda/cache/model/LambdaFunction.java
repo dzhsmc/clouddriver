@@ -18,12 +18,12 @@ package com.netflix.spinnaker.clouddriver.lambda.cache.model;
 
 import com.amazonaws.services.lambda.model.AliasConfiguration;
 import com.amazonaws.services.lambda.model.EventSourceMappingConfiguration;
+import com.amazonaws.services.lambda.model.FunctionCodeLocation;
 import com.amazonaws.services.lambda.model.FunctionConfiguration;
 import com.netflix.spinnaker.clouddriver.model.Function;
-import lombok.Data;
-
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class LambdaFunction extends FunctionConfiguration implements Function {
@@ -34,4 +34,7 @@ public class LambdaFunction extends FunctionConfiguration implements Function {
   private Map<String, String> revisions;
   private List<AliasConfiguration> aliasConfigurations;
   private List<EventSourceMappingConfiguration> eventSourceMappings;
+  private FunctionCodeLocation code;
+  private Map<String, String> tags;
+  private List<String> targetGroups;
 }

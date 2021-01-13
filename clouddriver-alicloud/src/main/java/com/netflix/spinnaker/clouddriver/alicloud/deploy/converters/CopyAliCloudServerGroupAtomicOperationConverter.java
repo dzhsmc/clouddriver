@@ -9,7 +9,6 @@ import com.netflix.spinnaker.clouddriver.model.ClusterProvider;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperations;
 import com.netflix.spinnaker.clouddriver.security.AbstractAtomicOperationsCredentialsSupport;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,13 +41,13 @@ public class CopyAliCloudServerGroupAtomicOperationConverter
 
   @Override
   public BasicAliCloudDeployDescription convertDescription(Map input) {
-    ArrayList<Map> scalingConfigurations =(ArrayList) input.get("scalingConfigurations");
-    for(Map map:scalingConfigurations){
-      if(!(map.get("tags") instanceof String)){
+    ArrayList<Map> scalingConfigurations = (ArrayList) input.get("scalingConfigurations");
+    for (Map map : scalingConfigurations) {
+      if (!(map.get("tags") instanceof String)) {
         map.put("tags", gson.toJson(map.get("tags")));
       }
     }
-    input.put("scalingConfigurations",scalingConfigurations);
+    input.put("scalingConfigurations", scalingConfigurations);
     BasicAliCloudDeployDescription description =
         getObjectMapper().convertValue(input, BasicAliCloudDeployDescription.class);
     description.setCredentials(getCredentialsObject((String) input.get("credentials")));

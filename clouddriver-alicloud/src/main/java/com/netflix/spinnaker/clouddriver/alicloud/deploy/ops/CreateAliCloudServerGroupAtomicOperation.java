@@ -42,7 +42,7 @@ import org.springframework.util.CollectionUtils;
 public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation<DeploymentResult> {
 
   private final Logger log =
-    LoggerFactory.getLogger(CreateAliCloudServerGroupAtomicOperation.class);
+      LoggerFactory.getLogger(CreateAliCloudServerGroupAtomicOperation.class);
 
   private final List<ClusterProvider> clusterProviders;
 
@@ -53,10 +53,10 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
   private final ClientFactory clientFactory;
 
   public CreateAliCloudServerGroupAtomicOperation(
-    BasicAliCloudDeployDescription description,
-    ObjectMapper objectMapper,
-    ClientFactory clientFactory,
-    List<ClusterProvider> clusterProviders) {
+      BasicAliCloudDeployDescription description,
+      ObjectMapper objectMapper,
+      ClientFactory clientFactory,
+      List<ClusterProvider> clusterProviders) {
     this.description = description;
     this.objectMapper = objectMapper;
     this.clientFactory = clientFactory;
@@ -68,22 +68,22 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
     DeploymentResult result = new DeploymentResult();
     // create scaling group
     IAcsClient client =
-      clientFactory.createClient(
-        description.getRegion(),
-        description.getCredentials().getAccessKeyId(),
-        description.getCredentials().getAccessSecretKey());
+        clientFactory.createClient(
+            description.getRegion(),
+            description.getCredentials().getAccessKeyId(),
+            description.getCredentials().getAccessSecretKey());
     AliCloudServerGroupNameResolver resolver =
-      new AliCloudServerGroupNameResolver(
-        description.getCredentials().getName(), description.getRegion(), clusterProviders);
+        new AliCloudServerGroupNameResolver(
+            description.getCredentials().getName(), description.getRegion(), clusterProviders);
     String serverGroupName =
-      resolver.resolveNextServerGroupName(
-        description.getApplication(),
-        description.getStack(),
-        description.getFreeFormDetails(),
-        false);
+        resolver.resolveNextServerGroupName(
+            description.getApplication(),
+            description.getStack(),
+            description.getFreeFormDetails(),
+            false);
     description.setScalingGroupName(serverGroupName);
     CreateScalingGroupRequest createScalingGroupRequest =
-      objectMapper.convertValue(description, CreateScalingGroupRequest.class);
+        objectMapper.convertValue(description, CreateScalingGroupRequest.class);
     rebuildCreateScalingGroupRequest(description, createScalingGroupRequest);
     createScalingGroupRequest.setScalingGroupName(serverGroupName);
     if (!StringUtils.isEmpty(description.getVSwitchId())) {
@@ -112,9 +112,9 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
 
     // create scaling configuration
     for (CreateScalingConfigurationRequest scalingConfiguration :
-      description.getScalingConfigurations()) {
+        description.getScalingConfigurations()) {
       CreateScalingConfigurationRequest configurationRequest =
-        objectMapper.convertValue(scalingConfiguration, CreateScalingConfigurationRequest.class);
+          objectMapper.convertValue(scalingConfiguration, CreateScalingConfigurationRequest.class);
       configurationRequest.setScalingGroupId(description.getScalingGroupId());
       CreateScalingConfigurationResponse configurationResponse;
       try {
@@ -155,31 +155,31 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
   }
 
   private void rebuildCreateScalingGroupRequest(
-    BasicAliCloudDeployDescription description, CreateScalingGroupRequest request) {
+      BasicAliCloudDeployDescription description, CreateScalingGroupRequest request) {
     if (description != null
-      && description.getSource() != null
-      && description.getSource().getUseSourceCapacity() != null
-      && description.getSource().getUseSourceCapacity()
-      && StringUtils.isNotEmpty(description.getSource().getAsgName())) {
+        && description.getSource() != null
+        && description.getSource().getUseSourceCapacity() != null
+        && description.getSource().getUseSourceCapacity()
+        && StringUtils.isNotEmpty(description.getSource().getAsgName())) {
 
       String asgName = description.getSource().getAsgName();
       DescribeScalingGroupsRequest describeScalingGroupsRequest =
-        new DescribeScalingGroupsRequest();
+          new DescribeScalingGroupsRequest();
       describeScalingGroupsRequest.setScalingGroupName(asgName);
       DescribeScalingGroupsResponse describeScalingGroupsResponse;
       try {
         IAcsClient client =
-          clientFactory.createClient(
-            description.getRegion(),
-            description.getCredentials().getAccessKeyId(),
-            description.getCredentials().getAccessSecretKey());
+            clientFactory.createClient(
+                description.getRegion(),
+                description.getCredentials().getAccessKeyId(),
+                description.getCredentials().getAccessSecretKey());
 
         describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
         if (describeScalingGroupsResponse.getScalingGroups().size() == 0) {
           throw new AliCloudException("Old server group is does not exist");
         }
         DescribeScalingGroupsResponse.ScalingGroup scalingGroup =
-          describeScalingGroupsResponse.getScalingGroups().get(0);
+            describeScalingGroupsResponse.getScalingGroups().get(0);
         if (scalingGroup.getMaxSize() != null) {
           request.setMaxSize(scalingGroup.getMaxSize());
         }
@@ -236,10 +236,10 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
     DescribeScalingGroupsResponse describeScalingGroupsResponse;
     try {
       IAcsClient client =
-        clientFactory.createClient(
-          description.getRegion(),
-          description.getCredentials().getAccessKeyId(),
-          description.getCredentials().getAccessSecretKey());
+          clientFactory.createClient(
+              description.getRegion(),
+              description.getCredentials().getAccessKeyId(),
+              description.getCredentials().getAccessSecretKey());
 
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
       if (describeScalingGroupsResponse.getScalingGroups().size() == 0) {
@@ -248,7 +248,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       }
 
       DescribeScalingGroupsResponse.ScalingGroup scalingGroup =
-        describeScalingGroupsResponse.getScalingGroups().get(0);
+          describeScalingGroupsResponse.getScalingGroups().get(0);
       sourceScalingGroupId = scalingGroup.getScalingGroupId();
 
       if (StringUtils.isEmpty(sourceScalingGroupId) || StringUtils.isEmpty(destScalingGroupId)) {
@@ -262,15 +262,15 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       describeTaskRequest.setPageSize(scheduledTaskPageSize);
       describeTaskRequest.setPageNumber(scheduledTaskPageNumber);
       DescribeScheduledTasksResponse describeTasksResponse =
-        client.getAcsResponse(describeTaskRequest);
+          client.getAcsResponse(describeTaskRequest);
       while (describeTasksResponse != null
-        && !CollectionUtils.isEmpty(describeTasksResponse.getScheduledTasks())) {
+          && !CollectionUtils.isEmpty(describeTasksResponse.getScheduledTasks())) {
         for (DescribeScheduledTasksResponse.ScheduledTask scheduledTask :
-          describeTasksResponse.getScheduledTasks()) {
+            describeTasksResponse.getScheduledTasks()) {
           if (sourceScalingGroupId.equals(scheduledTask.getScalingGroupId())
-            && StringUtils.isBlank(scheduledTask.getScheduledAction())) {
+              && StringUtils.isBlank(scheduledTask.getScheduledAction())) {
             CreateScheduledTaskRequest createScheduledTaskRequest =
-              objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
+                objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
             createScheduledTaskRequest.setScalingGroupId(destScalingGroupId);
             String launchTime = createScheduledTaskRequest.getLaunchTime();
             if (launchTime != null) {
@@ -278,7 +278,12 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
             }
             createScheduledTaskRequest.setSysRegionId(region);
             createScheduledTaskRequest.setScheduledTaskName("");
-            client.getAcsResponse(createScheduledTaskRequest);
+            // client.getAcsResponse(createScheduledTaskRequest);
+            try {
+              client.getAcsResponse(createScheduledTaskRequest);
+            } catch (Exception e) {
+              log.error(e.getMessage());
+            }
           }
         }
 
@@ -296,38 +301,38 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       describeScalingRulesRequest.setPageNumber(pageNumber);
 
       DescribeScalingRulesResponse describeScalingRulesResponse =
-        client.getAcsResponse(describeScalingRulesRequest);
+          client.getAcsResponse(describeScalingRulesRequest);
       Map<String, String> scalingRuleAriMap = new HashMap<>();
       while (describeScalingRulesResponse != null
-        && !CollectionUtils.isEmpty(describeScalingRulesResponse.getScalingRules())) {
+          && !CollectionUtils.isEmpty(describeScalingRulesResponse.getScalingRules())) {
         for (DescribeScalingRulesResponse.ScalingRule scalingRule :
-          describeScalingRulesResponse.getScalingRules()) {
+            describeScalingRulesResponse.getScalingRules()) {
           // scaling rule
           CreateScalingRuleRequest createScalingRuleRequest =
-            objectMapper.convertValue(scalingRule, CreateScalingRuleRequest.class);
+              objectMapper.convertValue(scalingRule, CreateScalingRuleRequest.class);
           createScalingRuleRequest.setScalingGroupId(destScalingGroupId);
           createScalingRuleRequest.setScalingRuleName("");
           CreateScalingRuleResponse createScalingRuleResponse =
-            client.getAcsResponse(createScalingRuleRequest);
+              client.getAcsResponse(createScalingRuleRequest);
           if (createScalingRuleResponse != null
-            && StringUtils.isNotEmpty(createScalingRuleResponse.getScalingRuleAri())) {
+              && StringUtils.isNotEmpty(createScalingRuleResponse.getScalingRuleAri())) {
             scalingRuleAriMap.put(
-              scalingRule.getScalingRuleAri(), createScalingRuleResponse.getScalingRuleAri());
+                scalingRule.getScalingRuleAri(), createScalingRuleResponse.getScalingRuleAri());
             // scheduled task
             DescribeScheduledTasksRequest describeScheduledTasksRequest =
-              new DescribeScheduledTasksRequest();
+                new DescribeScheduledTasksRequest();
             describeScheduledTasksRequest.setSysRegionId(region);
             describeScheduledTasksRequest.setScheduledAction1(scalingRule.getScalingRuleAri());
             describeScheduledTasksRequest.setPageSize(pageSize);
             int taskPageNumber = 1;
             describeScheduledTasksRequest.setPageNumber(taskPageNumber);
             DescribeScheduledTasksResponse describeScheduledTasksResponse =
-              client.getAcsResponse(describeScheduledTasksRequest);
+                client.getAcsResponse(describeScheduledTasksRequest);
 
             while (describeScheduledTasksResponse != null
-              && !CollectionUtils.isEmpty(describeScheduledTasksResponse.getScheduledTasks())) {
+                && !CollectionUtils.isEmpty(describeScheduledTasksResponse.getScheduledTasks())) {
               for (DescribeScheduledTasksResponse.ScheduledTask scheduledTask :
-                describeScheduledTasksResponse.getScheduledTasks()) {
+                  describeScheduledTasksResponse.getScheduledTasks()) {
 
                 if (StringUtils.isNotEmpty(scheduledTask.getScheduledAction())) {
                   scheduledTask.setScheduledAction(createScalingRuleResponse.getScalingRuleAri());
@@ -338,7 +343,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                 }
 
                 CreateScheduledTaskRequest createScheduledTaskRequest =
-                  objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
+                    objectMapper.convertValue(scheduledTask, CreateScheduledTaskRequest.class);
 
                 String launchTime = createScheduledTaskRequest.getLaunchTime();
                 if (launchTime != null) {
@@ -346,13 +351,12 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                 }
                 createScheduledTaskRequest.setSysRegionId(region);
                 createScheduledTaskRequest.setScheduledTaskName("");
-                try{
+                try {
                   CreateScheduledTaskResponse createScheduledTaskResponse =
-                    client.getAcsResponse(createScheduledTaskRequest);
-                }catch(Exception e){
+                      client.getAcsResponse(createScheduledTaskRequest);
+                } catch (Exception e) {
                   log.error(e.getMessage());
                 }
-
               }
 
               taskPageNumber = taskPageNumber + 1;
@@ -368,44 +372,44 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
 
       // notification configuration
       DescribeNotificationConfigurationsRequest describeNotificationConfigurationsRequest =
-        new DescribeNotificationConfigurationsRequest();
+          new DescribeNotificationConfigurationsRequest();
       describeNotificationConfigurationsRequest.setScalingGroupId(sourceScalingGroupId);
       DescribeNotificationConfigurationsResponse describeNotificationConfigurationsResponse =
-        client.getAcsResponse(describeNotificationConfigurationsRequest);
+          client.getAcsResponse(describeNotificationConfigurationsRequest);
       if (describeNotificationConfigurationsResponse != null
-        && !CollectionUtils.isEmpty(
-        describeNotificationConfigurationsResponse.getNotificationConfigurationModels())) {
+          && !CollectionUtils.isEmpty(
+              describeNotificationConfigurationsResponse.getNotificationConfigurationModels())) {
         for (DescribeNotificationConfigurationsResponse.NotificationConfigurationModel
-          notificationConfigurationModel :
-          describeNotificationConfigurationsResponse.getNotificationConfigurationModels()) {
+            notificationConfigurationModel :
+                describeNotificationConfigurationsResponse.getNotificationConfigurationModels()) {
           CreateNotificationConfigurationRequest createNotificationConfigurationRequest =
-            objectMapper.convertValue(
-              notificationConfigurationModel, CreateNotificationConfigurationRequest.class);
+              objectMapper.convertValue(
+                  notificationConfigurationModel, CreateNotificationConfigurationRequest.class);
           createNotificationConfigurationRequest.setScalingGroupId(destScalingGroupId);
           CreateNotificationConfigurationResponse createNotificationConfigurationResponse =
-            client.getAcsResponse(createNotificationConfigurationRequest);
+              client.getAcsResponse(createNotificationConfigurationRequest);
         }
       }
 
       // lifecycle hooks
       DescribeLifecycleHooksRequest describeLifecycleHooksRequest =
-        new DescribeLifecycleHooksRequest();
+          new DescribeLifecycleHooksRequest();
       describeLifecycleHooksRequest.setScalingGroupId(sourceScalingGroupId);
       describeLifecycleHooksRequest.setPageSize(pageSize);
       int hooksPageNumber = 1;
       describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
       DescribeLifecycleHooksResponse describeLifecycleHooksResponse =
-        client.getAcsResponse(describeLifecycleHooksRequest);
+          client.getAcsResponse(describeLifecycleHooksRequest);
 
       while (describeLifecycleHooksResponse != null
-        && !CollectionUtils.isEmpty(describeLifecycleHooksResponse.getLifecycleHooks())) {
+          && !CollectionUtils.isEmpty(describeLifecycleHooksResponse.getLifecycleHooks())) {
         for (DescribeLifecycleHooksResponse.LifecycleHook lifecycleHook :
-          describeLifecycleHooksResponse.getLifecycleHooks()) {
+            describeLifecycleHooksResponse.getLifecycleHooks()) {
           CreateLifecycleHookRequest createLifecycleHookRequest =
-            objectMapper.convertValue(lifecycleHook, CreateLifecycleHookRequest.class);
+              objectMapper.convertValue(lifecycleHook, CreateLifecycleHookRequest.class);
           createLifecycleHookRequest.setScalingGroupId(destScalingGroupId);
           CreateLifecycleHookResponse createLifecycleHookResponse =
-            client.getAcsResponse(createLifecycleHookRequest);
+              client.getAcsResponse(createLifecycleHookRequest);
         }
         hooksPageNumber = hooksPageNumber + 1;
         describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
@@ -422,10 +426,10 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
       DescribeAlarmsResponse describeAlarmsResponse = client.getAcsResponse(describeAlarmsRequest);
 
       while (describeAlarmsResponse != null
-        && !CollectionUtils.isEmpty(describeAlarmsResponse.getAlarmList())) {
+          && !CollectionUtils.isEmpty(describeAlarmsResponse.getAlarmList())) {
         for (DescribeAlarmsResponse.Alarm alarm : describeAlarmsResponse.getAlarmList()) {
           CreateAlarmRequest createAlarmRequest =
-            objectMapper.convertValue(alarm, CreateAlarmRequest.class);
+              objectMapper.convertValue(alarm, CreateAlarmRequest.class);
           createAlarmRequest.setSysRegionId(region);
           createAlarmRequest.setScalingGroupId(destScalingGroupId);
           if (!CollectionUtils.isEmpty(createAlarmRequest.getDimensions())) {
@@ -448,9 +452,9 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
             createAlarmRequest.setAlarmActions(alarmActions);
             CreateAlarmResponse createAlarmResponse = client.getAcsResponse(createAlarmRequest);
             if (createAlarmResponse != null
-              && StringUtils.isNotEmpty(createAlarmResponse.getAlarmTaskId())
-              && alarm.getEnable() != null
-              && alarm.getEnable()) {
+                && StringUtils.isNotEmpty(createAlarmResponse.getAlarmTaskId())
+                && alarm.getEnable() != null
+                && alarm.getEnable()) {
               EnableAlarmRequest enableAlarmRequest = new EnableAlarmRequest();
               enableAlarmRequest.setSysRegionId(region);
               enableAlarmRequest.setAlarmTaskId(createAlarmResponse.getAlarmTaskId());
@@ -479,7 +483,7 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
 
     Calendar down8Calendar = Calendar.getInstance();
     down8Calendar.setTime(new Date());
-    down8Calendar.add(Calendar.HOUR, -8);// 24小时制
+    down8Calendar.add(Calendar.HOUR, -8); // 24小时制
 
     if (launchTimeDate.before(down8Calendar.getTime())) {
       launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE));

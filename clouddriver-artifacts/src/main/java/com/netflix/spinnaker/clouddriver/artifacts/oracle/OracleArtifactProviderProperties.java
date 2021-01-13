@@ -10,15 +10,14 @@
 package com.netflix.spinnaker.clouddriver.artifacts.oracle;
 
 import com.netflix.spinnaker.clouddriver.artifacts.config.ArtifactProvider;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 @ConfigurationProperties("artifacts.oracle")
-public class OracleArtifactProviderProperties implements ArtifactProvider<OracleArtifactAccount> {
+final class OracleArtifactProviderProperties implements ArtifactProvider<OracleArtifactAccount> {
   private boolean enabled;
   private List<OracleArtifactAccount> accounts = new ArrayList<>();
 }

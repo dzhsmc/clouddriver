@@ -78,7 +78,7 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
   IAcsClient client;
 
   public AliCloudClusterCachingAgent(
-    AliCloudCredentials account, String region, ObjectMapper objectMapper, IAcsClient client) {
+      AliCloudCredentials account, String region, ObjectMapper objectMapper, IAcsClient client) {
     this.account = account;
     this.region = region;
     this.objectMapper = objectMapper;
@@ -86,17 +86,17 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
   }
 
   static final Collection<AgentDataType> types =
-    Collections.unmodifiableCollection(
-      new ArrayList<AgentDataType>() {
-        {
-          add(AUTHORITATIVE.forType(CLUSTERS.ns));
-          add(AUTHORITATIVE.forType(SERVER_GROUPS.ns));
-          add(AUTHORITATIVE.forType(APPLICATIONS.ns));
-          add(INFORMATIVE.forType(LOAD_BALANCERS.ns));
-          add(INFORMATIVE.forType(LAUNCH_CONFIGS.ns));
-          add(INFORMATIVE.forType(INSTANCES.ns));
-        }
-      });
+      Collections.unmodifiableCollection(
+          new ArrayList<AgentDataType>() {
+            {
+              add(AUTHORITATIVE.forType(CLUSTERS.ns));
+              add(AUTHORITATIVE.forType(SERVER_GROUPS.ns));
+              add(AUTHORITATIVE.forType(APPLICATIONS.ns));
+              add(INFORMATIVE.forType(LOAD_BALANCERS.ns));
+              add(INFORMATIVE.forType(LAUNCH_CONFIGS.ns));
+              add(INFORMATIVE.forType(INSTANCES.ns));
+            }
+          });
 
   @Override
   public CacheResult loadData(ProviderCache providerCache) {
@@ -110,21 +110,25 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
       while (true) {
         describeScalingGroupsRequest.setPageSize(pageSize);
         describeScalingGroupsRequest.setPageNumber(pageNumber);
-        logger.info("yejingtao bug log serverGroup loadData pageSize  pageNumber "+ pageSize + pageNumber);
+        logger.info(
+            "yejingtao bug log serverGroup loadData pageSize  pageNumber " + pageSize + pageNumber);
         describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
         if (!CollectionUtils.isEmpty(describeScalingGroupsResponse.getScalingGroups())) {
-          logger.info("yejingtao bug log serverGroup loadData describeScalingGroupsResponse "+ describeScalingGroupsResponse.getScalingGroups().size());
+          logger.info(
+              "yejingtao bug log serverGroup loadData describeScalingGroupsResponse "
+                  + describeScalingGroupsResponse.getScalingGroups().size());
           pageNumber = pageNumber + 1;
           scalingGroups.addAll(describeScalingGroupsResponse.getScalingGroups());
           if (describeScalingGroupsResponse.getScalingGroups().size() < pageSize) {
             break;
           }
         } else {
-          logger.info("yejingtao bug log serverGroup loadData break "+ pageSize + pageNumber);
+          logger.info("yejingtao bug log serverGroup loadData break " + pageSize + pageNumber);
           break;
         }
       }
-      logger.info("yejingtao bug log serverGroup loadData scalingGroups size "+ scalingGroups.size());
+      logger.info(
+          "yejingtao bug log serverGroup loadData scalingGroups size " + scalingGroups.size());
       result = buildCacheResult(scalingGroups, client);
     } catch (ServerException e) {
       e.printStackTrace();
@@ -138,7 +142,7 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
   }
 
   private CacheResult buildCacheResult(List<ScalingGroup> scalingGroups, IAcsClient client)
-    throws Exception {
+      throws Exception {
     Map<String, Collection<CacheData>> resultMap = new HashMap<>(16);
 
     Map<String, CacheData> applicationCaches = new HashMap<>(16);
@@ -148,19 +152,19 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
     Map<String, CacheData> launchConfigCaches = new HashMap<>(16);
     Map<String, CacheData> instanceCaches = new HashMap<>(16);
     logger.info("yejingtao bug log buildCacheResult start ");
-    try{
+    try {
       for (ScalingGroup sg : scalingGroups) {
 
         String activeScalingConfigurationId = sg.getActiveScalingConfigurationId();
         String scalingGroupId = sg.getScalingGroupId();
         DescribeScalingConfigurationsRequest scalingConfigurationsRequest =
-          new DescribeScalingConfigurationsRequest();
+            new DescribeScalingConfigurationsRequest();
         scalingConfigurationsRequest.setScalingGroupId(scalingGroupId);
         scalingConfigurationsRequest.setScalingConfigurationId1(activeScalingConfigurationId);
         DescribeScalingConfigurationsResponse scalingConfigurationsResponse =
-          client.getAcsResponse(scalingConfigurationsRequest);
+            client.getAcsResponse(scalingConfigurationsRequest);
         List<ScalingConfiguration> scalingConfigurations =
-          scalingConfigurationsResponse.getScalingConfigurations();
+            scalingConfigurationsResponse.getScalingConfigurations();
         String securityGroupName = "";
         // get securityGroupName
         if (scalingConfigurations.size() > 0) {
@@ -169,7 +173,7 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
           DescribeSecurityGroupsRequest securityGroupsRequest = new DescribeSecurityGroupsRequest();
           securityGroupsRequest.setSecurityGroupId(securityGroupId);
           DescribeSecurityGroupsResponse securityGroupsResponse =
-            client.getAcsResponse(securityGroupsRequest);
+              client.getAcsResponse(securityGroupsRequest);
           if (securityGroupsResponse.getSecurityGroups().size() > 0) {
             SecurityGroup securityGroup = securityGroupsResponse.getSecurityGroups().get(0);
             securityGroupName = securityGroup.getSecurityGroupName();
@@ -179,21 +183,21 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
         List<String> loadBalancerIds = sg.getLoadBalancerIds();
         if (sg.getVServerGroups() != null) {
           sg.getVServerGroups()
-            .forEach(
-              vServerGroup -> {
-                if (!loadBalancerIds.contains(vServerGroup.getLoadBalancerId())) {
-                  loadBalancerIds.add(vServerGroup.getLoadBalancerId());
-                }
-              });
+              .forEach(
+                  vServerGroup -> {
+                    if (!loadBalancerIds.contains(vServerGroup.getLoadBalancerId())) {
+                      loadBalancerIds.add(vServerGroup.getLoadBalancerId());
+                    }
+                  });
         }
-        List<DescribeLoadBalancerAttributeResponse> loadBalancerAttributes = new ArrayList<DescribeLoadBalancerAttributeResponse>();
+        List<DescribeLoadBalancerAttributeResponse> loadBalancerAttributes = new ArrayList<>();
         for (String loadBalancerId : loadBalancerIds) {
           try {
             DescribeLoadBalancerAttributeRequest describeLoadBalancerAttributeRequest =
-              new DescribeLoadBalancerAttributeRequest();
+                new DescribeLoadBalancerAttributeRequest();
             describeLoadBalancerAttributeRequest.setLoadBalancerId(loadBalancerId);
             DescribeLoadBalancerAttributeResponse describeLoadBalancerAttributeResponse =
-              client.getAcsResponse(describeLoadBalancerAttributeRequest);
+                client.getAcsResponse(describeLoadBalancerAttributeRequest);
             loadBalancerAttributes.add(describeLoadBalancerAttributeResponse);
           } catch (ClientException e) {
             String message = e.getMessage();
@@ -206,7 +210,7 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
         }
 
         DescribeScalingInstancesRequest scalingInstancesRequest =
-          new DescribeScalingInstancesRequest();
+            new DescribeScalingInstancesRequest();
         scalingInstancesRequest.setScalingGroupId(scalingGroupId);
         scalingInstancesRequest.setScalingConfigurationId(activeScalingConfigurationId);
         int pageNumber = 1;
@@ -242,15 +246,15 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
         }
 
         SgData sgData =
-          new SgData(
-            sg,
-            account.getName(),
-            region,
-            new HashMap<String, String>(16),
-            scalingConfigurationsResponse,
-            loadBalancerAttributes,
-            scalingInstances,
-            securityGroupName);
+            new SgData(
+                sg,
+                account.getName(),
+                region,
+                new HashMap<String, String>(16),
+                scalingConfigurationsResponse,
+                loadBalancerAttributes,
+                scalingInstances,
+                securityGroupName);
 
         cacheApplication(sgData, applicationCaches);
         cacheCluster(sgData, clusterCaches);
@@ -259,9 +263,9 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
         cacheInstance(sgData, instanceCaches);
         cacheLoadBalancer(sgData, loadBalancerCaches);
       }
-    }catch(Exception e){
+    } catch (Exception e) {
       e.printStackTrace();
-      logger.error("yejingtao bug log buildCacheResult error "+e.getMessage());
+      logger.error("yejingtao bug log buildCacheResult error " + e.getMessage());
       throw e;
     }
 
@@ -442,13 +446,13 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
     attributes.put("name", data.sg.getScalingGroupName());
     if (data.scalingConfigurationsResponse.getScalingConfigurations().size() > 0) {
       attributes.put(
-        "launchConfigName",
-        data.scalingConfigurationsResponse
-          .getScalingConfigurations()
-          .get(0)
-          .getScalingConfigurationName());
+          "launchConfigName",
+          data.scalingConfigurationsResponse
+              .getScalingConfigurations()
+              .get(0)
+              .getScalingConfigurationName());
       ScalingConfiguration scalingConfiguration =
-        data.scalingConfigurationsResponse.getScalingConfigurations().get(0);
+          data.scalingConfigurationsResponse.getScalingConfigurations().get(0);
       Map<String, Object> map = objectMapper.convertValue(scalingConfiguration, Map.class);
       map.put("securityGroupName", data.securityGroupName);
       attributes.put("scalingConfiguration", map);
@@ -503,14 +507,14 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
     final String securityGroupName;
 
     public SgData(
-      ScalingGroup sg,
-      String account,
-      String region,
-      Map<String, String> subnetMap,
-      DescribeScalingConfigurationsResponse scalingConfigurationsResponse,
-      List<DescribeLoadBalancerAttributeResponse> loadBalancerAttributes,
-      List<ScalingInstance> scalingInstances,
-      String securityGroupName) {
+        ScalingGroup sg,
+        String account,
+        String region,
+        Map<String, String> subnetMap,
+        DescribeScalingConfigurationsResponse scalingConfigurationsResponse,
+        List<DescribeLoadBalancerAttributeResponse> loadBalancerAttributes,
+        List<ScalingInstance> scalingInstances,
+        String securityGroupName) {
 
       this.sg = sg;
       this.scalingConfigurationsResponse = scalingConfigurationsResponse;
@@ -523,8 +527,8 @@ public class AliCloudClusterCachingAgent implements CachingAgent, AccountAware, 
       launchConfig = Keys.getLaunchConfigKey(sg.getScalingGroupName(), account, region);
       for (DescribeLoadBalancerAttributeResponse loadBalancerAttribute : loadBalancerAttributes) {
         loadBalancerNames.add(
-          Keys.getLoadBalancerKey(
-            loadBalancerAttribute.getLoadBalancerName(), account, region, null));
+            Keys.getLoadBalancerKey(
+                loadBalancerAttribute.getLoadBalancerName(), account, region, null));
       }
       for (ScalingInstance scalingInstance : scalingInstances) {
         instanceIds.add(Keys.getInstanceKey(scalingInstance.getInstanceId(), account, region));

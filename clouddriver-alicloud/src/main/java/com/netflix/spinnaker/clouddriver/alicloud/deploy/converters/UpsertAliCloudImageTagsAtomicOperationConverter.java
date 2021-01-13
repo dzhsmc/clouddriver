@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @AliCloudOperation(AtomicOperations.UPSERT_IMAGE_TAGS)
 @Component("upsertAliCloudImageTagsDescription")
 public class UpsertAliCloudImageTagsAtomicOperationConverter
-  extends AbstractAtomicOperationsCredentialsSupport {
+    extends AbstractAtomicOperationsCredentialsSupport {
 
   private final ClientFactory clientFactory;
 
@@ -26,13 +26,13 @@ public class UpsertAliCloudImageTagsAtomicOperationConverter
   @Override
   public AtomicOperation convertOperation(Map input) {
     return new UpsertAliCloudImageTagsAtomicOperation(
-      convertDescription(input), getObjectMapper(), clientFactory);
+        convertDescription(input), getObjectMapper(), clientFactory);
   }
 
   @Override
   public UpsertAliCloudImageTagsDescription convertDescription(Map input) {
     UpsertAliCloudImageTagsDescription converted =
-      getObjectMapper().convertValue(input, UpsertAliCloudImageTagsDescription.class);
+        getObjectMapper().convertValue(input, UpsertAliCloudImageTagsDescription.class);
     converted.setCredentials(getCredentialsObject((String) input.get("credentials")));
     return converted;
   }

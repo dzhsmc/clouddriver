@@ -16,27 +16,29 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.cache;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.spinnaker.cats.cache.CacheData;
+import java.util.Collection;
+import java.util.Map;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-
 @Getter
+@EqualsAndHashCode
 public class ResourceCacheData implements CacheData {
   final String id;
   final Map<String, Collection<String>> relationships;
   final Map<String, Object> attributes;
   final int ttlSeconds = -1;
 
-  public ResourceCacheData(String id, Object resource, Map<String, Collection<String>> relationships) {
+  @JsonCreator
+  public ResourceCacheData(
+      @JsonProperty("id") String id,
+      @JsonProperty("attributes") Map<String, Object> attributes,
+      @JsonProperty("relationships") Map<String, Collection<String>> relationships) {
     this.id = id;
-
-    this.attributes = new HashMap<>();
-    this.attributes.put("resource", resource);
-
+    this.attributes = attributes;
     this.relationships = relationships;
   }
 }

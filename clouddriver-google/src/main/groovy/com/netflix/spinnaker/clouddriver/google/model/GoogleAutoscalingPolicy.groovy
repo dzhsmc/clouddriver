@@ -31,6 +31,7 @@ class GoogleAutoscalingPolicy {
   CpuUtilization cpuUtilization
   LoadBalancingUtilization loadBalancingUtilization
   List<CustomMetricUtilization> customMetricUtilizations
+  ScaleDownControl scaleDownControl
   AutoscalingMode mode
 
   @ToString(includeNames = true)
@@ -56,11 +57,23 @@ class GoogleAutoscalingPolicy {
     }
   }
 
+  static class ScaleDownControl {
+    FixedOrPercent maxScaledDownReplicas
+    Integer timeWindowSec
+  }
+
+  static class FixedOrPercent {
+    Integer fixed
+    Integer percent
+  }
 
   static enum AutoscalingMode {
     ON,
     OFF,
     ONLY_UP,
+    // ONLY_DOWN is being removed as an option from GCE. We can remove this option once we have
+    // confirmation that all the autoscaler policies have been migrated away from it (by the GCE
+    // team).
     ONLY_DOWN
   }
 }

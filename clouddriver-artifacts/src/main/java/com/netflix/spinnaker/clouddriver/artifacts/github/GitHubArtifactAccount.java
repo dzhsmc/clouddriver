@@ -17,22 +17,21 @@
 
 package com.netflix.spinnaker.clouddriver.artifacts.github;
 
-
 import com.netflix.spinnaker.clouddriver.artifacts.config.ArtifactAccount;
 import com.netflix.spinnaker.clouddriver.artifacts.config.BasicAuth;
 import com.netflix.spinnaker.clouddriver.artifacts.config.TokenAuth;
 import lombok.Data;
 
 @Data
-public class GitHubArtifactAccount implements ArtifactAccount, BasicAuth, TokenAuth {
+final class GitHubArtifactAccount implements ArtifactAccount, BasicAuth, TokenAuth {
   private String name;
   /*
-    One of the following are required for auth:
-     - username and password
-     - usernamePasswordFile : path to file containing "username:password"
-     - token
-     - tokenFile : path to file containing token
-   */
+   One of the following are required for auth:
+    - username and password
+    - usernamePasswordFile : path to file containing "username:password"
+    - token
+    - tokenFile : path to file containing token
+  */
   private String username;
   private String password;
   private String usernamePasswordFile;

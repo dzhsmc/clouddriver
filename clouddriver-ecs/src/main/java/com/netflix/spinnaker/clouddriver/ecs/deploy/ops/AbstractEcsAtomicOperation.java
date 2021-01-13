@@ -16,7 +16,7 @@
 
 package com.netflix.spinnaker.clouddriver.ecs.deploy.ops;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.services.applicationautoscaling.AWSApplicationAutoScaling;
 import com.amazonaws.services.ecs.AmazonECS;
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider;
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonCredentials;
@@ -29,20 +29,17 @@ import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public abstract class AbstractEcsAtomicOperation<T extends AbstractECSDescription, K> implements AtomicOperation<K> {
+public abstract class AbstractEcsAtomicOperation<T extends AbstractECSDescription, K>
+    implements AtomicOperation<K> {
   private final String basePhase;
-  @Autowired
-  AmazonClientProvider amazonClientProvider;
-  @Autowired
-  AccountCredentialsProvider accountCredentialsProvider;
-  @Autowired
-  ContainerInformationService containerInformationService;
+  @Autowired AmazonClientProvider amazonClientProvider;
+  @Autowired AccountCredentialsProvider accountCredentialsProvider;
+  @Autowired ContainerInformationService containerInformationService;
   T description;
 
   AbstractEcsAtomicOperation(T description, String basePhase) {
     this.description = description;
     this.basePhase = basePhase;
-
   }
 
   private static Task getTask() {
@@ -55,11 +52,17 @@ public abstract class AbstractEcsAtomicOperation<T extends AbstractECSDescriptio
   }
 
   AmazonECS getAmazonEcsClient() {
-    AWSCredentialsProvider credentialsProvider = getCredentials().getCredentialsProvider();
     String region = getRegion();
     NetflixAmazonCredentials credentialAccount = description.getCredentials();
 
     return amazonClientProvider.getAmazonEcs(credentialAccount, region, false);
+  }
+
+  AWSApplicationAutoScaling getAmazonApplicationAutoScalingClient() {
+    String region = getRegion();
+    NetflixAmazonCredentials credentialAccount = description.getCredentials();
+
+    return amazonClientProvider.getAmazonApplicationAutoScaling(credentialAccount, region, false);
   }
 
   protected String getRegion() {
@@ -67,7 +70,7 @@ public abstract class AbstractEcsAtomicOperation<T extends AbstractECSDescriptio
   }
 
   AmazonCredentials getCredentials() {
-    return (AmazonCredentials) accountCredentialsProvider.getCredentials(description.getCredentialAccount());
+    return (AmazonCredentials) accountCredentialsProvider.getCredentials(description.getAccount());
   }
 
   void updateTaskStatus(String status) {

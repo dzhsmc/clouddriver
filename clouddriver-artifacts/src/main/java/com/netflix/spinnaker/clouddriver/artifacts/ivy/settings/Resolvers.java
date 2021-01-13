@@ -17,15 +17,14 @@
 package com.netflix.spinnaker.clouddriver.artifacts.ivy.settings;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Data;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
-public class Resolvers {
+final class Resolvers {
   @JacksonXmlElementWrapper(useWrapping = false)
   @Nullable
   private List<BintrayResolver> bintray;

@@ -231,7 +231,7 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
         description.blockDevices = blockDeviceConfig.getBlockDevicesForInstanceType(description.instanceType)
       }
       ResolvedAmiResult ami = priorOutputs.find({
-        it instanceof ResolvedAmiResult && it.region == region && it.amiName == description.amiName
+        it instanceof ResolvedAmiResult && it.region == region && (it.amiName == description.amiName || it.amiId == description.amiName)
       }) ?: AmiIdResolver.resolveAmiIdFromAllSources(amazonEC2, region, description.amiName, description.credentials.accountId)
 
       if (!ami) {
@@ -298,7 +298,8 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
         regionScopedProvider: regionScopedProvider,
         base64UserData: description.base64UserData,
         legacyUdf: description.legacyUdf,
-        tags: applyAppStackDetailTags(deployDefaults, description).tags
+        tags: applyAppStackDetailTags(deployDefaults, description).tags,
+        lifecycleHooks: getLifecycleHooks(account, description)
       )
 
       def asgName = autoScalingWorker.deploy()
@@ -306,16 +307,14 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
       deploymentResult.serverGroupNames << "${region}:${asgName}".toString()
       deploymentResult.serverGroupNameByRegion[region] = asgName
 
-      if (description.copySourceScalingPoliciesAndActions) {
+      if (description.copySourceScalingPoliciesAndActions && sourceRegionScopedProvider) {
         copyScalingPoliciesAndScheduledActions(
           task, sourceRegionScopedProvider,
-          regionScopedProvider.amazonCredentials, description.credentials,
+          sourceRegionScopedProvider.amazonCredentials, description.credentials,
           description.source.asgName, asgName,
           description.source.region, region
         )
       }
-
-      createLifecycleHooks(task, regionScopedProvider, account, description, asgName)
 
       description.events << new CreateServerGroupEvent(
         AmazonCloudProvider.ID, account.accountId, region, asgName
@@ -324,13 +323,15 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
       deploymentResult.deployments.add(
           new DeploymentResult.Deployment(
               cloudProvider: "aws",
-              account: description.getCredentialAccount(),
+              account: description.getAccount(),
               location: region,
               serverGroupName: asgName,
               capacity: capacity
           )
       )
     }
+
+    task.updateStatus(BASE_PHASE, "Created the following deployments: ${deploymentResult.deployments}")
 
     return deploymentResult
   }
@@ -451,24 +452,6 @@ class BasicAmazonDeployHandler implements DeployHandler<BasicAmazonDeployDescrip
     scalingPolicyCopier.copyScalingPolicies(task, sourceAsgName, targetAsgName,
       sourceCredentials, targetCredentials, sourceRegion, targetRegion)
     asgReferenceCopier.copyScheduledActionsForAsg(task, sourceAsgName, targetAsgName)
-  }
-
-  @VisibleForTesting
-  @PackageScope
-  void createLifecycleHooks(Task task,
-                            RegionScopedProviderFactory.RegionScopedProvider targetRegionScopedProvider,
-                            NetflixAmazonCredentials targetCredentials,
-                            BasicAmazonDeployDescription description,
-                            String targetAsgName) {
-
-    try {
-      List<AmazonAsgLifecycleHook> lifecycleHooks = getLifecycleHooks(targetCredentials, description)
-      if (lifecycleHooks.size() > 0) {
-        targetRegionScopedProvider.asgLifecycleHookWorker.attach(task, lifecycleHooks, targetAsgName)
-      }
-    } catch (Exception e) {
-      task.updateStatus(BASE_PHASE, "Unable to attach lifecycle hooks to ASG ($targetAsgName): ${e.message}")
-    }
   }
 
   @VisibleForTesting

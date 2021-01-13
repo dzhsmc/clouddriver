@@ -245,11 +245,28 @@ class CopyLastGoogleServerGroupAtomicOperation extends GoogleAtomicOperation<Dep
           description.canIpForward != null
           ? description.canIpForward
           : ancestorInstanceProperties.canIpForward
+
+      def shieldedVmConfig = ancestorInstanceProperties.shieldedVmConfig
+
+      if (shieldedVmConfig) {
+        newDescription.enableSecureBoot =
+          description.enableSecureBoot != null
+            ? description.enableSecureBoot
+            : shieldedVmConfig.enableSecureBoot
+
+        newDescription.enableVtpm =
+          description.enableVtpm != null
+            ? description.enableVtpm
+            : shieldedVmConfig.enableVtpm
+
+        newDescription.enableIntegrityMonitoring =
+          description.enableIntegrityMonitoring != null
+            ? description.enableIntegrityMonitoring
+            : shieldedVmConfig.enableIntegrityMonitoring
+      }
     }
 
-    AutoscalingPolicy ancestorAutoscalingPolicy = ancestorServerGroup.autoscalingPolicy
-    GoogleAutoscalingPolicy ancestorAutoscalingPolicyDescription =
-      GCEUtil.buildAutoscalingPolicyDescriptionFromAutoscalingPolicy(ancestorAutoscalingPolicy)
+    GoogleAutoscalingPolicy ancestorAutoscalingPolicyDescription = ancestorServerGroup.autoscalingPolicy
 
     newDescription.autoscalingPolicy = description.autoscalingPolicy ?: ancestorAutoscalingPolicyDescription
 

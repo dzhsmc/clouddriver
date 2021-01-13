@@ -17,12 +17,13 @@
 package com.netflix.spinnaker.clouddriver.azure.resources.servergroup.model
 
 import com.google.common.collect.Sets
-import com.microsoft.azure.management.compute.VirtualMachineScaleSet
+import com.microsoft.azure.management.compute.VirtualMachineScaleSetDataDisk
 import com.microsoft.azure.management.compute.implementation.VirtualMachineScaleSetInner
 import com.netflix.frigga.Names
 import com.netflix.spinnaker.clouddriver.azure.AzureCloudProvider
 import com.netflix.spinnaker.clouddriver.azure.common.AzureUtilities
 import com.netflix.spinnaker.clouddriver.azure.resources.common.AzureResourceOpsDescription
+import com.netflix.spinnaker.clouddriver.azure.resources.loadbalancer.model.AzureLoadBalancer
 import com.netflix.spinnaker.clouddriver.azure.resources.vmimage.model.AzureNamedImage
 import com.netflix.spinnaker.clouddriver.model.HealthState
 import com.netflix.spinnaker.clouddriver.model.Instance
@@ -38,6 +39,7 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
   Set<String> loadBalancers
   Set<String> securityGroups
   Set<String> zones
+  Map<String, String> instanceTags /* custom tags specified by user */
   final String type = AzureCloudProvider.ID
   final String cloudProvider = AzureCloudProvider.ID
   Map<String, Object> launchConfig
@@ -47,6 +49,7 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
 
   UpgradePolicy upgradePolicy
   String loadBalancerName
+  String loadBalancerType
   String appGatewayName
   String appGatewayBapId
   AzureNamedImage image
@@ -66,6 +69,8 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
   Boolean hasNewSubnet = false
   Boolean createNewSubnet = false
   AzureExtensionCustomScriptSettings customScriptsSettings
+  Boolean enableInboundNAT = false
+  List<VirtualMachineScaleSetDataDisk> dataDisks
 
   static class AzureScaleSetSku {
     String name
@@ -112,7 +117,9 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
 
   @Override
   Set<String> getLoadBalancers() {
-    return this.appGatewayName == null ? new HashSet<String>() : Sets.newHashSet(this.appGatewayName)
+    if(this.appGatewayName != null) return Sets.newHashSet(this.appGatewayName)
+    if(this.loadBalancerName != null) return Sets.newHashSet(this.loadBalancerName)
+    new HashSet<String>()
   }
 
   @Override
@@ -142,7 +149,7 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
     new ServerGroup.Capacity(
       min: 1,
       max: instances ? instances.size() : 1,
-      desired: 1 //TODO (scotm) figure out how these should be set correctly
+      desired: instances ? instances.size() : 1
     )
   }
 
@@ -160,7 +167,9 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
     azureSG.clusterName = scaleSet.tags?.cluster ?: parsedName.cluster
     azureSG.securityGroupName = scaleSet.tags?.securityGroupName
     azureSG.loadBalancerName = scaleSet.tags?.loadBalancerName
+    azureSG.enableInboundNAT = scaleSet.tags?.enableInboundNAT
     azureSG.appGatewayName = scaleSet.tags?.appGatewayName
+    azureSG.loadBalancerType = azureSG.appGatewayName != null ? AzureLoadBalancer.AzureLoadBalancerType.AZURE_APPLICATION_GATEWAY.toString() : AzureLoadBalancer.AzureLoadBalancerType.AZURE_LOAD_BALANCER.toString()
     azureSG.appGatewayBapId = scaleSet.tags?.appGatewayBapId
     // TODO: appGatewayBapId can be retrieved via scaleSet->networkProfile->networkInterfaceConfigurations->ipConfigurations->ApplicationGatewayBackendAddressPools
     azureSG.subnetId = scaleSet.tags?.subnetId
@@ -185,13 +194,16 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
     azureSG.upgradePolicy = getPolicyFromMode(scaleSet.upgradePolicy().mode().name())
 
     // Get the image reference data
-    def imgRef = scaleSet.virtualMachineProfile()?.storageProfile()?.imageReference()
+    def storageProfile = scaleSet.virtualMachineProfile()?.storageProfile()
+    def imgRef = storageProfile?.imageReference()
     if (imgRef) {
       azureSG.image.offer = imgRef.offer()
       azureSG.image.publisher = imgRef.publisher()
       azureSG.image.sku = imgRef.sku()
       azureSG.image.version = imgRef.version()
     }
+
+    azureSG.dataDisks = storageProfile?.dataDisks()
 
     // get the OS configuration data
     def osConfig = new AzureOperatingSystemConfig()
@@ -201,7 +213,6 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
       osConfig.adminUserName = osProfile.adminUsername()
       osConfig.computerNamePrefix = osProfile.computerNamePrefix()
       osConfig.customData = osProfile.customData()
-
     }
     azureSG.osConfig = osConfig
 
@@ -228,6 +239,8 @@ class AzureServerGroupDescription extends AzureResourceOpsDescription implements
       sku.tier = skuData.tier()
     }
     azureSG.sku = sku
+    def zones = scaleSet.zones()
+    azureSG.zones = zones == null ? new HashSet<>() : zones.toSet()
 
     azureSG.provisioningState = scaleSet.provisioningState()
 

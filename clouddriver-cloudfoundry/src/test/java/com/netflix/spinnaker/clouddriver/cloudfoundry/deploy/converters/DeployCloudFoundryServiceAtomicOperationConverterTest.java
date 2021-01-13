@@ -16,9 +16,17 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.converters;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.netflix.spinnaker.clouddriver.artifacts.ArtifactCredentialsRepository;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.artifacts.ArtifactCredentialsFromString;
+import com.netflix.spinnaker.clouddriver.cloudfoundry.cache.CacheRepository;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryClient;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.MockCloudFoundryClient;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.DeployCloudFoundryServiceDescription;
@@ -31,72 +39,74 @@ import com.netflix.spinnaker.clouddriver.security.DefaultAccountCredentialsProvi
 import com.netflix.spinnaker.clouddriver.security.MapBackedAccountCredentialsRepository;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.when;
-
 class DeployCloudFoundryServiceAtomicOperationConverterTest {
 
   private final CloudFoundryClient cloudFoundryClient = new MockCloudFoundryClient();
+  private final CacheRepository cacheRepository = mock(CacheRepository.class);
 
   {
     when(cloudFoundryClient.getOrganizations().findByName(any()))
-      .thenAnswer((Answer<Optional<CloudFoundryOrganization>>) invocation -> {
-        Object[] args = invocation.getArguments();
-        return Optional.of(CloudFoundryOrganization.builder()
-          .id(args[0].toString() + "ID").name(args[0].toString()).build());
-      });
+        .thenReturn(
+            Optional.of(CloudFoundryOrganization.builder().id("space-guid").name("space").build()));
 
-    when(cloudFoundryClient.getSpaces().findByName(any(), any())).thenAnswer((Answer<CloudFoundrySpace>) invocation -> {
-      Object[] args = invocation.getArguments();
-      return CloudFoundrySpace.builder().id(args[1].toString() + "ID").name(args[1].toString())
-        .organization(CloudFoundryOrganization.builder()
-          .id(args[0].toString()).name(args[0].toString().replace("ID", "")).build()).build();
-    });
+    when(cloudFoundryClient.getOrganizations().findSpaceByRegion(any()))
+        .thenAnswer(
+            (Answer<Optional<CloudFoundrySpace>>)
+                invocation ->
+                    Optional.of(
+                        CloudFoundrySpace.builder()
+                            .id("space-guid")
+                            .name("space")
+                            .organization(
+                                CloudFoundryOrganization.builder()
+                                    .id("org-guid")
+                                    .name("org")
+                                    .build())
+                            .build()));
   }
 
-  private final CloudFoundryCredentials cloudFoundryCredentials = new CloudFoundryCredentials(
-    "test", "", "", "", "", "", "") {
-    public CloudFoundryClient getClient() {
-      return cloudFoundryClient;
-    }
-  };
+  private final CloudFoundryCredentials cloudFoundryCredentials =
+      new CloudFoundryCredentials("test", "", "", "", "", "", "", false, 500, 16, cacheRepository) {
+        public CloudFoundryClient getClient() {
+          return cloudFoundryClient;
+        }
+      };
 
-  private final ArtifactCredentialsRepository artifactCredentialsRepository = new ArtifactCredentialsRepository(
-    Collections.singletonList(
-      Collections.singletonList(new ArtifactCredentialsFromString(
-        "test",
-        List.of("a").asJava(),
-        "service_instance_name: my-service-instance-name\n" +
-          "service: my-service\n" +
-          "service_plan: my-service-plan\n" +
-          "tags:\n" +
-          "- tag1\n" +
-          "parameters: |\n" +
-          "  { \"foo\": \"bar\" }\n"
-      ))
-    )
-  );
+  private final ArtifactCredentialsRepository artifactCredentialsRepository =
+      new ArtifactCredentialsRepository(
+          Collections.singletonList(
+              Collections.singletonList(
+                  new ArtifactCredentialsFromString(
+                      "test",
+                      List.of("test").asJava(),
+                      "service_instance_name: my-service-instance-name\n"
+                          + "service: my-service\n"
+                          + "service_plan: my-service-plan\n"
+                          + "tags:\n"
+                          + "- tag1\n"
+                          + "updatable: false\n"
+                          + "parameters: |\n"
+                          + "  { \"foo\": \"bar\" }\n"))));
 
-  private final AccountCredentialsRepository accountCredentialsRepository = new MapBackedAccountCredentialsRepository();
+  private final AccountCredentialsRepository accountCredentialsRepository =
+      new MapBackedAccountCredentialsRepository();
 
   {
     accountCredentialsRepository.update("test", cloudFoundryCredentials);
   }
 
   private final AccountCredentialsProvider accountCredentialsProvider =
-    new DefaultAccountCredentialsProvider(accountCredentialsRepository);
+      new DefaultAccountCredentialsProvider(accountCredentialsRepository);
   private final DeployCloudFoundryServiceAtomicOperationConverter converter =
-    new DeployCloudFoundryServiceAtomicOperationConverter(artifactCredentialsRepository);
+      new DeployCloudFoundryServiceAtomicOperationConverter();
 
   @BeforeEach
   void initializeClassUnderTest() {
@@ -106,224 +116,205 @@ class DeployCloudFoundryServiceAtomicOperationConverterTest {
 
   @Test
   void convertManifestMapToServiceAttributes() {
-    final Map input = HashMap.of(
-      "service", "my-service",
-      "service_instance_name", "my-service-instance-name",
-      "service_plan", "my-service-plan",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "parameters", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "service", "my-service",
+                "service_instance_name", "my-service-instance-name",
+                "service_plan", "my-service-plan",
+                "tags", List.of("my-tag").asJava(),
+                "parameters", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThat(converter.convertManifest(input)).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.ServiceAttributes()
-        .setService("my-service")
-        .setServiceInstanceName("my-service-instance-name")
-        .setServicePlan("my-service-plan")
-        .setTags(Collections.singleton("my-tag"))
-        .setParameterMap(HashMap.<String, Object>of(
-          "foo", "bar"
-        ).toJavaMap())
-    );
+    assertThat(converter.convertManifest(input))
+        .isEqualToComparingFieldByFieldRecursively(
+            new DeployCloudFoundryServiceDescription.ServiceAttributes()
+                .setService("my-service")
+                .setServiceInstanceName("my-service-instance-name")
+                .setServicePlan("my-service-plan")
+                .setTags(Collections.singleton("my-tag"))
+                .setUpdatable(true)
+                .setParameterMap(HashMap.<String, Object>of("foo", "bar").toJavaMap()));
   }
 
   @Test
   void convertManifestMapToServiceAttributesMissingServiceThrowsException() {
-    final Map input = HashMap.of(
-      "service_instance_name", "my-service-instance-name",
-      "service_plan", "my-service-plan",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "parameters", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "service_instance_name", "my-service-instance-name",
+                "service_plan", "my-service-plan",
+                "tags", Collections.singletonList("my-tag"),
+                "parameters", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThrows(IllegalArgumentException.class, () -> converter.convertManifest(input), "Manifest is missing the service");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> converter.convertManifest(input),
+        "Manifest is missing the service");
   }
 
   @Test
   void convertManifestMapToServiceAttributesMissingServiceNameThrowsException() {
-    final Map input = HashMap.of(
-      "service_instance_name", "my-service-instance-name",
-      "service_plan", "my-service-plan",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "parameters", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "service_instance_name", "my-service-instance-name",
+                "service_plan", "my-service-plan",
+                "tags", Collections.singletonList("my-tag"),
+                "parameters", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThrows(IllegalArgumentException.class, () -> converter.convertManifest(input), "Manifest is missing the service name");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> converter.convertManifest(input),
+        "Manifest is missing the service name");
   }
 
   @Test
   void convertManifestMapToServiceAttributesMissingServicePlanThrowsException() {
-    final Map input = HashMap.of(
-      "service", "my-service",
-      "service_instance_name", "my-service-instance-name",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "parameters", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "service", "my-service",
+                "service_instance_name", "my-service-instance-name",
+                "tags", Collections.singletonList("my-tag"),
+                "parameters", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThrows(IllegalArgumentException.class, () -> converter.convertManifest(input), "Manifest is missing the service plan");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> converter.convertManifest(input),
+        "Manifest is missing the service plan");
   }
 
   @Test
   void convertCupsManifestMapToUserProvidedServiceAttributes() {
-    final Map input = HashMap.of(
-      "service_instance_name", "my-service-instance-name",
-      "syslog_drain_url", "test-syslog-drain-url",
-      "route_service_url", "test-route-service-url",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "credentials_map", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "service_instance_name", "my-service-instance-name",
+                "syslog_drain_url", "test-syslog-drain-url",
+                "updatable", false,
+                "route_service_url", "test-route-service-url",
+                "tags", Collections.singletonList("my-tag"),
+                "credentials_map", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThat(converter.convertUserProvidedServiceManifest(input)).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.UserProvidedServiceAttributes()
-        .setServiceInstanceName("my-service-instance-name")
-        .setSyslogDrainUrl("test-syslog-drain-url")
-        .setRouteServiceUrl("test-route-service-url")
-        .setTags(Collections.singleton("my-tag"))
-        .setCredentialsMap(HashMap.<String, Object>of(
-          "foo", "bar"
-        ).toJavaMap())
-    );
+    assertThat(converter.convertUserProvidedServiceManifest(input))
+        .isEqualToComparingFieldByFieldRecursively(
+            new DeployCloudFoundryServiceDescription.UserProvidedServiceAttributes()
+                .setServiceInstanceName("my-service-instance-name")
+                .setSyslogDrainUrl("test-syslog-drain-url")
+                .setRouteServiceUrl("test-route-service-url")
+                .setTags(Collections.singleton("my-tag"))
+                .setUpdatable(false)
+                .setCredentials(Collections.singletonMap("foo", "bar")));
   }
 
   @Test
   void convertCupsManifestMapToUserProvidedServiceAttributesMissingServiceNameThrowsException() {
-    final Map input = HashMap.of(
-      "syslog_drain_url", "test-syslog-drain-url",
-      "route_service_url", "test-route-service-url",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "credentials_map", "{\"foo\": \"bar\"}"
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "syslog_drain_url", "test-syslog-drain-url",
+                "route_service_url", "test-route-service-url",
+                "tags", Collections.singletonList("my-tag"),
+                "credentials_map", "{\"foo\": \"bar\"}")
+            .toJavaMap();
 
-    assertThrows(IllegalArgumentException.class, () -> converter.convertUserProvidedServiceManifest(input), "Manifest is missing the service name");
-  }
-
-  @Test
-  void convertManifestMapToServiceAttributesEmptyParamString() {
-    final Map input = HashMap.of(
-      "service", "my-service",
-      "service_instance_name", "my-service-instance-name",
-      "service_plan", "my-service-plan",
-      "tags", List.of(
-        "my-tag"
-      ).asJava(),
-      "parameters", ""
-    ).toJavaMap();
-
-    assertThat(converter.convertManifest(input)).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.ServiceAttributes()
-        .setService("my-service")
-        .setServiceInstanceName("my-service-instance-name")
-        .setServicePlan("my-service-plan")
-        .setTags(Collections.singleton("my-tag"))
-    );
-  }
-
-  @Test
-  void convertManifestMapToServiceAttributesBadParamString() {
-    final Map input = HashMap.of(
-      "parameters", "[\"foo\", \"bar\"]"
-    ).toJavaMap();
-
-    assertThrows(IllegalArgumentException.class,
-      () -> converter.convertManifest(input),
-      "Unable to convert parameters to map: 'Unexpected character (',' (code 44)): was expecting a colon to separate field name and value");
-  }
-
-  @Test
-  void convertDescriptionWithDownloadedManifest() {
-    final Map input = HashMap.of(
-      "credentials", "test",
-      "region", "org > space",
-      "manifest", HashMap.of(
-        "type", "artifact",
-        "account", "test",
-        "reference", "ref1"
-      ).toJavaMap()
-    ).toJavaMap();
-
-    final DeployCloudFoundryServiceDescription result = converter.convertDescription(input);
-
-    assertThat(result.getSpace()).isEqualToComparingFieldByFieldRecursively(
-      CloudFoundrySpace.builder().id("spaceID").name("space").organization(
-        CloudFoundryOrganization.builder().id("orgID").name("org").build()).build());
-    assertThat(result.getServiceAttributes()).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.ServiceAttributes()
-        .setService("my-service")
-        .setServiceInstanceName("my-service-instance-name")
-        .setServicePlan("my-service-plan")
-        .setTags(Collections.singleton("tag1"))
-        .setParameterMap(HashMap.<String, Object>of(
-          "foo", "bar"
-        ).toJavaMap())
-    );
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> converter.convertUserProvidedServiceManifest(input),
+        "Manifest is missing the service name");
   }
 
   @Test
   void convertDescriptionWithUserProvidedInput() {
-    final Map input = HashMap.of(
-      "credentials", "test",
-      "region", "org > space",
-      "manifest", HashMap.of(
-        "type", "userProvided",
-        "serviceInstanceName", "userProvidedServiceName",
-        "tags", List.of(
-          "my-tag"
-        ).asJava(),
-        "syslogDrainUrl", "http://syslogDrainUrl.io",
-        "credentials", "{\"foo\": \"bar\"}",
-        "routeServiceUrl", "http://routeServiceUrl.io"
-      ).toJavaMap()
-    ).toJavaMap();
+    final Map input =
+        HashMap.of(
+                "credentials",
+                "test",
+                "region",
+                "org > space",
+                "userProvided",
+                true,
+                "manifest",
+                Collections.singletonList(
+                    HashMap.of(
+                            "serviceInstanceName", "userProvidedServiceName",
+                            "tags", Collections.singletonList("my-tag"),
+                            "syslogDrainUrl", "http://syslogDrainUrl.io",
+                            "credentials", "{\"foo\": \"bar\"}",
+                            "routeServiceUrl", "http://routeServiceUrl.io")
+                        .toJavaMap()))
+            .toJavaMap();
 
     final DeployCloudFoundryServiceDescription result = converter.convertDescription(input);
     assertThat(result.getServiceAttributes()).isNull();
-    assertThat(result.getUserProvidedServiceAttributes()).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.UserProvidedServiceAttributes()
-        .setServiceInstanceName("userProvidedServiceName")
-        .setSyslogDrainUrl("http://syslogDrainUrl.io")
-        .setRouteServiceUrl("http://routeServiceUrl.io")
-        .setTags(Collections.singleton("my-tag"))
-        .setCredentialsMap(HashMap.<String, Object>of(
-          "foo", "bar"
-        ).toJavaMap())
-    );
+    assertThat(result.getUserProvidedServiceAttributes())
+        .isEqualToComparingFieldByFieldRecursively(
+            new DeployCloudFoundryServiceDescription.UserProvidedServiceAttributes()
+                .setServiceInstanceName("userProvidedServiceName")
+                .setSyslogDrainUrl("http://syslogDrainUrl.io")
+                .setRouteServiceUrl("http://routeServiceUrl.io")
+                .setTags(Collections.singleton("my-tag"))
+                .setUpdatable(true)
+                .setCredentials(HashMap.<String, Object>of("foo", "bar").toJavaMap()));
+  }
+
+  private static class WithMap {
+    public WithMap() {}
+
+    public WithMap(String key, Object value) {
+      this.mapField = Collections.singletonMap(key, value);
+    }
+
+    @Nullable
+    @JsonDeserialize(
+        using =
+            DeployCloudFoundryServiceAtomicOperationConverter.OptionallySerializedMapDeserializer
+                .class)
+    private Map<String, Object> mapField;
   }
 
   @Test
-  void convertDescriptionWithUserProvidedInputWithoutCredentials() {
-    final Map input = HashMap.of(
-      "credentials", "test",
-      "region", "org > space",
-      "manifest", HashMap.of(
-        "type", "userProvided",
-        "serviceInstanceName", "userProvidedServiceName",
-        "tags", List.of(
-          "my-tag"
-        ).asJava(),
-        "syslogDrainUrl", "http://syslogDrainUrl.io",
-        "routeServiceUrl", "http://routeServiceUrl.io"
-      ).toJavaMap()
-    ).toJavaMap();
+  void deserializeYamlSerializedMap() {
+    final WithMap result =
+        new ObjectMapper()
+            .convertValue(Collections.singletonMap("mapField", "key1: value1"), WithMap.class);
 
-    final DeployCloudFoundryServiceDescription result = converter.convertDescription(input);
-    assertThat(result.getServiceAttributes()).isNull();
-    assertThat(result.getUserProvidedServiceAttributes()).isEqualToComparingFieldByFieldRecursively(
-      new DeployCloudFoundryServiceDescription.UserProvidedServiceAttributes()
-        .setServiceInstanceName("userProvidedServiceName")
-        .setSyslogDrainUrl("http://syslogDrainUrl.io")
-        .setRouteServiceUrl("http://routeServiceUrl.io")
-        .setTags(Collections.singleton("my-tag"))
-    );
+    assertThat(result).isEqualToComparingFieldByFieldRecursively(new WithMap("key1", "value1"));
+  }
+
+  @Test
+  void deserializeJsonSerializedMap() {
+    final WithMap result =
+        new ObjectMapper()
+            .convertValue(
+                Collections.singletonMap("mapField", "{\"key1\": \"value1\"}}"), WithMap.class);
+
+    assertThat(result).isEqualToComparingFieldByFieldRecursively(new WithMap("key1", "value1"));
+  }
+
+  @Test
+  void deserializeAlreadyDeserializedMap() {
+    final WithMap result =
+        new ObjectMapper()
+            .convertValue(
+                Collections.singletonMap("mapField", Collections.singletonMap("key1", "value1")),
+                WithMap.class);
+
+    assertThat(result).isEqualToComparingFieldByFieldRecursively(new WithMap("key1", "value1"));
+  }
+
+  @Test
+  void deserializeEmptyStringAsMap() {
+    final WithMap result =
+        new ObjectMapper().convertValue(Collections.singletonMap("mapField", ""), WithMap.class);
+
+    assertThat(result).isEqualToComparingFieldByFieldRecursively(new WithMap());
+  }
+
+  @Test
+  void deserializeNullStringAsMap() {
+    final WithMap result =
+        new ObjectMapper().convertValue(Collections.singletonMap("mapField", null), WithMap.class);
+
+    assertThat(result).isEqualToComparingFieldByFieldRecursively(new WithMap());
   }
 }

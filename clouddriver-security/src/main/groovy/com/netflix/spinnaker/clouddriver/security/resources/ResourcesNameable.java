@@ -17,7 +17,6 @@
 package com.netflix.spinnaker.clouddriver.security.resources;
 
 import com.netflix.frigga.Names;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -32,10 +31,19 @@ public interface ResourcesNameable {
   Collection<String> getNames();
 
   default Collection<String> getResourceApplications() {
-    return Optional.ofNullable(getNames()).orElse(Collections.emptyList())
-      .stream()
-      .filter(Objects::nonNull)
-      .map(name -> Names.parseName(name).getApp())
-      .collect(Collectors.toList());
+    return Optional.ofNullable(getNames()).orElse(Collections.emptyList()).stream()
+        .filter(Objects::nonNull)
+        .map(name -> Names.parseName(name).getApp())
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Determine if the resource should be authz evaluated by the {@link
+   * com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator}.
+   *
+   * @return boolean
+   */
+  default boolean requiresAuthorization() {
+    return true;
   }
 }

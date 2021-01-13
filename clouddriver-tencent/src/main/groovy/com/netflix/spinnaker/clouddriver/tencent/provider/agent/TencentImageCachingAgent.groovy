@@ -98,3 +98,4 @@ class TencentImageCachingAgent extends AbstractTencentCachingAgent {
     defaultCacheResult
   }
 }
+

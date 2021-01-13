@@ -18,7 +18,6 @@ package com.netflix.spinnaker.clouddriver.alicloud.deploy.converters;
 
 import com.aliyuncs.ess.model.v20140828.CreateScalingGroupRequest;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.netflix.spinnaker.clouddriver.alicloud.AliCloudOperation;
 import com.netflix.spinnaker.clouddriver.alicloud.common.ClientFactory;
 import com.netflix.spinnaker.clouddriver.alicloud.deploy.description.BasicAliCloudDeployDescription;
@@ -30,23 +29,24 @@ import com.netflix.spinnaker.clouddriver.security.AbstractAtomicOperationsCreden
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @AliCloudOperation(AtomicOperations.CREATE_SERVER_GROUP)
 @Component("createAliCloudServerGroupDescription")
 public class CreateAliCloudServerGroupAtomicOperationConverter
-  extends AbstractAtomicOperationsCredentialsSupport {
+    extends AbstractAtomicOperationsCredentialsSupport {
 
   private final ClientFactory clientFactory;
 
   private final List<ClusterProvider> clusterProviders;
 
   static final Gson gson = new Gson();
+
   @Autowired
   public CreateAliCloudServerGroupAtomicOperationConverter(
-    ClientFactory clientFactory, List<ClusterProvider> clusterProviders) {
+      ClientFactory clientFactory, List<ClusterProvider> clusterProviders) {
     this.clientFactory = clientFactory;
     this.clusterProviders = clusterProviders;
   }
@@ -54,42 +54,42 @@ public class CreateAliCloudServerGroupAtomicOperationConverter
   @Override
   public AtomicOperation convertOperation(Map input) {
     return new CreateAliCloudServerGroupAtomicOperation(
-      convertDescription(input), getObjectMapper(), clientFactory, clusterProviders);
+        convertDescription(input), getObjectMapper(), clientFactory, clusterProviders);
   }
 
   @Override
   public BasicAliCloudDeployDescription convertDescription(Map input) {
-    ArrayList<Map> scalingConfigurations =(ArrayList) input.get("scalingConfigurations");
-    for(Map map:scalingConfigurations){
-      if(!(map.get("tags") instanceof String)){
+    ArrayList<Map> scalingConfigurations = (ArrayList) input.get("scalingConfigurations");
+    for (Map map : scalingConfigurations) {
+      if (!(map.get("tags") instanceof String)) {
         map.put("tags", gson.toJson(map.get("tags")));
       }
     }
-    input.put("scalingConfigurations",scalingConfigurations);
+    input.put("scalingConfigurations", scalingConfigurations);
     BasicAliCloudDeployDescription description =
-      getObjectMapper().convertValue(input, BasicAliCloudDeployDescription.class);
+        getObjectMapper().convertValue(input, BasicAliCloudDeployDescription.class);
 
     ArrayList<Map> vServerGroups = (ArrayList<Map>) input.get("vServerGroups");
     if (vServerGroups != null) {
       List<CreateScalingGroupRequest.VServerGroup> vServerGroupsNew = new ArrayList<>();
       for (Map map : vServerGroups) {
         CreateScalingGroupRequest.VServerGroup vServerGroup =
-          getObjectMapper().convertValue(map, CreateScalingGroupRequest.VServerGroup.class);
+            getObjectMapper().convertValue(map, CreateScalingGroupRequest.VServerGroup.class);
         ArrayList<Map> vServerGroupAttributes =
-          (ArrayList<Map>)
-            map.getOrDefault("vserverGroupAttributes", map.get("vServerGroupAttributes"));
+            (ArrayList<Map>)
+                map.getOrDefault("vserverGroupAttributes", map.get("vServerGroupAttributes"));
         List<CreateScalingGroupRequest.VServerGroup.VServerGroupAttribute>
-          vServerGroupAttributesList = new ArrayList<>();
+            vServerGroupAttributesList = new ArrayList<>();
         if (vServerGroupAttributes != null) {
           for (Map vServerGroupAttributeMap : vServerGroupAttributes) {
             CreateScalingGroupRequest.VServerGroup.VServerGroupAttribute vServerGroupAttribute =
-              getObjectMapper()
-                .convertValue(
-                  vServerGroupAttributeMap,
-                  CreateScalingGroupRequest.VServerGroup.VServerGroupAttribute.class);
+                getObjectMapper()
+                    .convertValue(
+                        vServerGroupAttributeMap,
+                        CreateScalingGroupRequest.VServerGroup.VServerGroupAttribute.class);
             Object vServerGroupId =
-              vServerGroupAttributeMap.getOrDefault(
-                "vserverGroupId", vServerGroupAttributeMap.get("vServerGroupId"));
+                vServerGroupAttributeMap.getOrDefault(
+                    "vserverGroupId", vServerGroupAttributeMap.get("vServerGroupId"));
             if (vServerGroupId != null) {
               vServerGroupAttribute.setVServerGroupId(vServerGroupId.toString());
             }
@@ -98,7 +98,7 @@ public class CreateAliCloudServerGroupAtomicOperationConverter
         }
         boolean isAdd = true;
         for (CreateScalingGroupRequest.VServerGroup.VServerGroupAttribute vServerGroupAttribute :
-          vServerGroupAttributesList) {
+            vServerGroupAttributesList) {
           if (StringUtils.isBlank(vServerGroupAttribute.getVServerGroupId())) {
             isAdd = false;
           }

@@ -87,6 +87,7 @@ class CreateAzureServerGroupAtomicOperation implements AtomicOperation<Map> {
       // TODO: replace appGatewayName with loadBalancerName
       if (!description.appGatewayName) {
         description.appGatewayName = description.loadBalancerName
+        description.loadBalancerName = null
       }
       def appGatewayDescription = description.credentials.networkClient.getAppGateway(resourceGroupName, description.appGatewayName)
 
@@ -184,11 +185,25 @@ class CreateAzureServerGroupAtomicOperation implements AtomicOperation<Map> {
         description.credentials.subscriptionId,
         description.credentials.defaultResourceGroup,
         description.credentials.defaultKeyVault)
-      templateParameters[AzureServerGroupResourceTemplate.vmPasswordParameterName] = new KeyVaultSecret("VMPassword",
-        description.credentials.subscriptionId,
-        description.credentials.defaultResourceGroup,
-        description.credentials.defaultKeyVault)
-      templateParameters[AzureServerGroupResourceTemplate.customDataParameterName] = description.osConfig.customData ?: ""
+
+      if(description.credentials.useSshPublicKey) {
+        templateParameters[AzureServerGroupResourceTemplate.vmSshPublicKeyParameterName] = new KeyVaultSecret("VMSshPublicKey",
+          description.credentials.subscriptionId,
+          description.credentials.defaultResourceGroup,
+          description.credentials.defaultKeyVault)
+      }
+      else {
+        templateParameters[AzureServerGroupResourceTemplate.vmPasswordParameterName] = new KeyVaultSecret("VMPassword",
+          description.credentials.subscriptionId,
+          description.credentials.defaultResourceGroup,
+          description.credentials.defaultKeyVault)
+      }
+
+      // The empty "" cannot be assigned to the custom data otherwise Azure service will run into error complaining "custom data must be in Base64".
+      // So once there is no custom data, remove this template section rather than assigning a "".
+      if(description.osConfig.customData){
+        templateParameters[AzureServerGroupResourceTemplate.customDataParameterName] = description.osConfig.customData
+      }
 
       if (errList.isEmpty()) {
         description.subnetId = subnetId
@@ -209,6 +224,16 @@ class CreateAzureServerGroupAtomicOperation implements AtomicOperation<Map> {
       errList.add(e.message)
     }
     if (errList.isEmpty()) {
+      if (description.credentials.networkClient.isServerGroupDisabled(resourceGroupName, description.appGatewayName, description.name)) {
+        description
+          .credentials
+          .networkClient
+          .enableServerGroup(resourceGroupName, description.appGatewayName, description.name)
+        task.updateStatus BASE_PHASE, "Done enabling Azure server group ${description.name} in ${description.region}."
+      } else {
+        task.updateStatus BASE_PHASE, "Azure server group ${description.name} in ${description.region} is already enabled."
+      }
+
       task.updateStatus(BASE_PHASE, "Deployment for server group ${description.name} in ${description.region} has succeeded.")
     }
     else {

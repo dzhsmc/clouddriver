@@ -16,24 +16,24 @@
 
 package com.netflix.spinnaker.clouddriver.artifacts.http;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.netflix.spinnaker.kork.artifacts.model.Artifact;
 import com.squareup.okhttp.OkHttpClient;
-import org.apache.commons.io.Charsets;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junitpioneer.jupiter.TempDirectory;
-import ru.lanwen.wiremock.ext.WiremockResolver;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Function;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.commons.io.Charsets;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junitpioneer.jupiter.TempDirectory;
+import ru.lanwen.wiremock.ext.WiremockResolver;
 
 @ExtendWith({WiremockResolver.class, TempDirectory.class})
 class HttpArtifactCredentialsTest {
@@ -53,7 +53,9 @@ class HttpArtifactCredentialsTest {
   }
 
   @Test
-  void downloadWithBasicAuthFromFile(@TempDirectory.TempDir Path tempDir, @WiremockResolver.Wiremock WireMockServer server) throws IOException {
+  void downloadWithBasicAuthFromFile(
+      @TempDirectory.TempDir Path tempDir, @WiremockResolver.Wiremock WireMockServer server)
+      throws IOException {
     Path authFile = tempDir.resolve("auth-file");
     Files.write(authFile, "someuser:somepassw0rd!".getBytes());
 
@@ -72,28 +74,44 @@ class HttpArtifactCredentialsTest {
     runTestCase(server, account, m -> m.withHeader("Authorization", absent()));
   }
 
+  @Test
+  void throwExceptionOnNonSuccessfulResponse(@WiremockResolver.Wiremock WireMockServer server) {
+    HttpArtifactAccount account = new HttpArtifactAccount();
+    HttpArtifactCredentials credentials = new HttpArtifactCredentials(account, okHttpClient);
+    Artifact artifact =
+        Artifact.builder().reference(server.baseUrl() + URL).type("http/file").build();
+    account.setName("my-http-account");
+    server.stubFor(any(urlPathEqualTo(URL)).willReturn(aResponse().withStatus(404)));
 
-  private void runTestCase(WireMockServer server, HttpArtifactAccount account, Function<MappingBuilder, MappingBuilder> expectedAuth) throws IOException {
+    Throwable thrown = catchThrowable(() -> credentials.download(artifact));
+
+    assertThat(thrown)
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("404")
+        .hasMessageContaining(server.baseUrl());
+    assertThat(server.findUnmatchedRequests().getRequests()).isEmpty();
+  }
+
+  private void runTestCase(
+      WireMockServer server,
+      HttpArtifactAccount account,
+      Function<MappingBuilder, MappingBuilder> expectedAuth)
+      throws IOException {
     HttpArtifactCredentials credentials = new HttpArtifactCredentials(account, okHttpClient);
 
-    Artifact artifact = Artifact.builder()
-      .reference(server.baseUrl() + URL)
-      .type("http/file")
-      .build();
+    Artifact artifact =
+        Artifact.builder().reference(server.baseUrl() + URL).type("http/file").build();
 
     prepareServer(server, expectedAuth);
 
     assertThat(credentials.download(artifact))
-      .hasSameContentAs(new ByteArrayInputStream(FILE_CONTENTS.getBytes(Charsets.UTF_8)));
+        .hasSameContentAs(new ByteArrayInputStream(FILE_CONTENTS.getBytes(Charsets.UTF_8)));
     assertThat(server.findUnmatchedRequests().getRequests()).isEmpty();
   }
 
-  private void prepareServer(WireMockServer server, Function<MappingBuilder, MappingBuilder> withAuth) {
+  private void prepareServer(
+      WireMockServer server, Function<MappingBuilder, MappingBuilder> withAuth) {
     server.stubFor(
-      withAuth.apply(
-        any(urlPathEqualTo(URL))
-          .willReturn(aResponse().withBody(FILE_CONTENTS))
-      )
-    );
+        withAuth.apply(any(urlPathEqualTo(URL)).willReturn(aResponse().withBody(FILE_CONTENTS))));
   }
 }

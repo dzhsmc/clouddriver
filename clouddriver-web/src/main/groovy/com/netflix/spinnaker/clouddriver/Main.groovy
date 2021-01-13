@@ -16,15 +16,26 @@
 
 package com.netflix.spinnaker.clouddriver
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spinnaker.clouddriver.security.config.SecurityConfig
+import com.netflix.spinnaker.kork.boot.DefaultPropertiesBuilder
+import com.netflix.spinnaker.kork.configserver.ConfigServerBootstrap
+import org.springframework.boot.actuate.autoconfigure.elasticsearch.ElasticSearchJestHealthContributorAutoConfiguration
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration
+import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchAutoConfiguration
+import org.springframework.boot.autoconfigure.elasticsearch.jest.JestAutoConfiguration
 import org.springframework.boot.autoconfigure.groovy.template.GroovyTemplateAutoConfiguration
+import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.springframework.boot.web.support.SpringBootServletInitializer
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.scheduling.annotation.EnableScheduling
 import sun.net.InetAddressCachePolicy
 
@@ -40,21 +51,17 @@ import java.security.Security
   'com.netflix.spinnaker.clouddriver.config'
 ])
 @EnableAutoConfiguration(exclude = [
-    BatchAutoConfiguration,
-    GroovyTemplateAutoConfiguration,
+  BatchAutoConfiguration,
+  GroovyTemplateAutoConfiguration,
+  GsonAutoConfiguration,
+  DataSourceAutoConfiguration,
+  ElasticsearchAutoConfiguration,
+  ElasticSearchJestHealthContributorAutoConfiguration,
+  JestAutoConfiguration
 ])
 @EnableScheduling
 class Main extends SpringBootServletInitializer {
-
-  static final Map<String, String> DEFAULT_PROPS = [
-    'netflix.environment'    : 'test',
-    'netflix.account'        : '${netflix.environment}',
-    'netflix.stack'          : 'test',
-    'spring.config.location' : '${user.home}/.spinnaker/',
-    'spring.application.name': 'clouddriver',
-    'spring.config.name'     : 'spinnaker,${spring.application.name}',
-    'spring.profiles.active' : '${netflix.environment},local'
-  ]
+  private static final Map<String, Object> DEFAULT_PROPS = new DefaultPropertiesBuilder().build()
 
   static {
     /**
@@ -63,18 +70,28 @@ class Main extends SpringBootServletInitializer {
      */
     InetAddressCachePolicy.cachePolicy = InetAddressCachePolicy.NEVER
     Security.setProperty('networkaddress.cache.ttl', '0')
+    System.setProperty("spring.main.allow-bean-definition-overriding", "true")
   }
 
   static void main(String... args) {
-    launchArgs = args
-    new SpringApplicationBuilder().properties(DEFAULT_PROPS).sources(Main).run(args)
+    ConfigServerBootstrap.systemProperties("clouddriver")
+    new SpringApplicationBuilder()
+      .properties(DEFAULT_PROPS)
+      .sources(Main)
+      .run(args)
+  }
+
+  @Bean
+  @Primary
+  ObjectMapper jacksonObjectMapper(Jackson2ObjectMapperBuilder builder) {
+    return builder.createXmlMapper(false).build()
   }
 
   @Override
   SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-    application.properties(DEFAULT_PROPS).sources(Main)
+    application
+      .properties(DEFAULT_PROPS)
+      .sources(Main)
   }
-
-  static String[] launchArgs = []
 }
 

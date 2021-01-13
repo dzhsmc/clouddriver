@@ -16,19 +16,19 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.cache;
 
+import static com.netflix.spinnaker.clouddriver.cloudfoundry.CloudFoundryCloudProvider.ID;
+import static java.util.Collections.emptyMap;
+
 import com.netflix.spinnaker.clouddriver.cache.KeyParser;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.model.CloudFoundryLoadBalancer;
-import lombok.Getter;
-import org.springframework.stereotype.Component;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import static com.netflix.spinnaker.clouddriver.cloudfoundry.CloudFoundryCloudProvider.ID;
-import static com.netflix.spinnaker.clouddriver.cloudfoundry.cache.Keys.Namespace.*;
-import static java.util.Collections.emptyMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import lombok.Getter;
+import org.springframework.stereotype.Component;
 
 @Component("CloudFoundryInfraKeys")
 public class Keys implements KeyParser {
@@ -65,7 +65,7 @@ public class Keys implements KeyParser {
       result.put("name", parts[4]);
     } else if (Namespace.SERVER_GROUPS.ns.equals(type)) {
       result.put("account", parts[2]);
-      result.put("name", parts[3]);
+      result.put("serverGroup", parts[3]);
       result.put("region", parts[4]);
     } else {
       return Optional.empty();
@@ -75,46 +75,100 @@ public class Keys implements KeyParser {
   }
 
   public static String getApplicationKey(String app) {
-    return ID + ":" + APPLICATIONS + ":" + app;
+    return ID + ":" + Namespace.APPLICATIONS + ":" + app.toLowerCase();
+  }
+
+  public static String getSpaceKey(String account, String region) {
+    return ID + ":" + Namespace.SPACES + ":" + account + ":" + region;
+  }
+
+  public static String getAllSpacesKey(String account) {
+    return ID + ":" + Namespace.SPACES + ":" + account + ":*";
   }
 
   public static String getAllLoadBalancers() {
-    return ID + ":" + LOAD_BALANCERS + ":*";
+    return ID + ":" + Namespace.LOAD_BALANCERS + ":*";
   }
 
   public static String getLoadBalancerKey(String account, CloudFoundryLoadBalancer lb) {
-    return ID +
-      ":" + LOAD_BALANCERS +
-      ":" + account +
-      ":" + lb.getId() +
-      ":" + (lb.getHost() != null ? lb.getHost() : "") +
-      ":" + lb.getDomain().getName() +
-      ":" + (lb.getPath() != null ? lb.getPath() : "") +
-      ":" + (lb.getPort() != null ? lb.getPort() : -1) +
-      ":" + lb.getRegion();
+    return ID
+        + ":"
+        + Namespace.LOAD_BALANCERS
+        + ":"
+        + account
+        + ":"
+        + lb.getId()
+        + ":"
+        + (lb.getHost() != null ? lb.getHost() : "")
+        + ":"
+        + lb.getDomain().getName()
+        + ":"
+        + (lb.getPath() != null ? lb.getPath() : "")
+        + ":"
+        + (lb.getPort() != null ? lb.getPort() : -1)
+        + ":"
+        + lb.getRegion();
+  }
+
+  public static String getLoadBalancerKey(String account, String guid) {
+    return ID + ":" + Namespace.LOAD_BALANCERS + ":" + account + ":" + guid + ":*";
+  }
+
+  public static String getLoadBalancerKey(String account, String uri, String region) {
+    Pattern VALID_ROUTE_REGEX =
+        Pattern.compile("^([a-zA-Z0-9_-]+)\\.([a-zA-Z0-9_.-]+)(:[0-9]+)?([/a-zA-Z0-9_-]+)?$");
+    Matcher matcher = VALID_ROUTE_REGEX.matcher(uri);
+    if (matcher.find()) {
+      String host = Optional.ofNullable(matcher.group(1)).orElse("*");
+      String domain = Optional.ofNullable(matcher.group(2)).orElse("*");
+      String port = Optional.ofNullable(matcher.group(3)).orElse("-1");
+      String path = Optional.ofNullable(matcher.group(4)).orElse("");
+      return ID
+          + ":"
+          + Namespace.LOAD_BALANCERS
+          + ":"
+          + account
+          + ":*:"
+          + host
+          + ":"
+          + domain
+          + ":"
+          + path
+          + ":"
+          + port
+          + ":"
+          + region;
+    } else {
+      return null;
+    }
   }
 
   public static String getClusterKey(String account, String app, String name) {
-    return ID +
-      ":" + CLUSTERS +
-      ":" + account +
-      ":" + app +
-      ":" + name;
+    return ID
+        + ":"
+        + Namespace.CLUSTERS
+        + ":"
+        + account
+        + ":"
+        + app.toLowerCase()
+        + ":"
+        + name.toLowerCase();
   }
 
   public static String getServerGroupKey(String account, String name, String region) {
-    return ID +
-      ":" + SERVER_GROUPS +
-      ":" + account +
-      ":" + name +
-      ":" + region;
+    return ID
+        + ":"
+        + Namespace.SERVER_GROUPS
+        + ":"
+        + account
+        + ":"
+        + name.toLowerCase()
+        + ":"
+        + region;
   }
 
   public static String getInstanceKey(String account, String instanceName) {
-    return ID +
-      ":" + INSTANCES +
-      ":" + account +
-      ":" + instanceName;
+    return ID + ":" + Namespace.INSTANCES + ":" + account + ":" + instanceName;
   }
 
   @Override
@@ -141,10 +195,12 @@ public class Keys implements KeyParser {
   @Getter
   public enum Namespace {
     APPLICATIONS("applications"),
-    LOAD_BALANCERS("loadBalancers"),
     CLUSTERS("clusters"),
+    INSTANCES("instances"),
+    LOAD_BALANCERS("loadBalancers"),
+    ON_DEMAND("onDemand"),
     SERVER_GROUPS("serverGroups"),
-    INSTANCES("instances");
+    SPACES("spaces");
 
     final String ns;
 

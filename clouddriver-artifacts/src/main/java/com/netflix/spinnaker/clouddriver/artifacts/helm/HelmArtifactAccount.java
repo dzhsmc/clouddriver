@@ -17,19 +17,18 @@
 
 package com.netflix.spinnaker.clouddriver.artifacts.helm;
 
-
 import com.netflix.spinnaker.clouddriver.artifacts.config.ArtifactAccount;
 import com.netflix.spinnaker.clouddriver.artifacts.config.BasicAuth;
 import lombok.Data;
 
 @Data
-public class HelmArtifactAccount implements ArtifactAccount, BasicAuth {
+final class HelmArtifactAccount implements ArtifactAccount, BasicAuth {
   private String name;
   /*
-    One of the following are required for auth:
-     - username and password
-     - usernamePasswordFile : path to file containing "username:password"
-   */
+   One of the following are required for auth:
+    - username and password
+    - usernamePasswordFile : path to file containing "username:password"
+  */
   private String username;
   private String password;
   private String usernamePasswordFile;

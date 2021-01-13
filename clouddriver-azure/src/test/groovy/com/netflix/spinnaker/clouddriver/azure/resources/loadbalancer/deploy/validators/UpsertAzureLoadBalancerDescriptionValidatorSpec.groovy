@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.clouddriver.azure.resources.loadbalancer.deploy.validators
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.netflix.spinnaker.clouddriver.azure.resources.loadbalancer.model.AzureLoadBalancer
 import com.netflix.spinnaker.clouddriver.azure.security.AzureCredentials
 import com.netflix.spinnaker.clouddriver.azure.security.AzureNamedAccountCredentials
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
@@ -81,7 +82,7 @@ class UpsertAzureLoadBalancerDescriptionValidatorSpec extends Specification {
   UpsertAzureLoadBalancerDescriptionValidator validator
 
   void setupSpec() {
-    azureCredentials = new AzureCredentials(ACCOUNT_CLIENTID, ACCOUNT_TENANTID, ACCOUNT_APPKEY, SUBSCRIPTION_ID, DEFAULT_KEY_VAULT, DEFAULT_RESOURCE_GROUP, "", "")
+    azureCredentials = new AzureCredentials(ACCOUNT_CLIENTID, ACCOUNT_TENANTID, ACCOUNT_APPKEY, SUBSCRIPTION_ID, DEFAULT_KEY_VAULT, DEFAULT_RESOURCE_GROUP, "", "", false)
 
     def credentialsRepo = new MapBackedAccountCredentialsRepository()
     def credentials = Mock(AzureNamedAccountCredentials)
@@ -100,6 +101,7 @@ class UpsertAzureLoadBalancerDescriptionValidatorSpec extends Specification {
     setup:
       def input = [
         loadBalancerName: LOAD_BALANCER_NAME,
+        loadBalancerType: AzureLoadBalancer.AzureLoadBalancerType.AZURE_LOAD_BALANCER.toString(),
         region: REGION,
         accountName: ACCOUNT_NAME,
         cloudProvider: CLOUD_PROVIDER,

@@ -15,12 +15,12 @@
  */
 package com.netflix.spinnaker.clouddriver.scattergather.client
 
+import javax.servlet.http.HttpServletRequest
 import okhttp3.Call
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import javax.servlet.http.HttpServletRequest
 
 /**
  * Creates a collection of OkHttp3 [Call] objects from a map of targets and
@@ -38,9 +38,11 @@ class ScatteredOkHttpCallFactory(
    *
    * The [targets] map expects a mapping of `shardName to shardBaseUrl`.
    */
-  fun createCalls(workId: String,
-                  targets: Map<String, String>,
-                  originalRequest: HttpServletRequest): List<Call> {
+  fun createCalls(
+    workId: String,
+    targets: Map<String, String>,
+    originalRequest: HttpServletRequest
+  ): List<Call> {
     val requestBody = getRequestBody(originalRequest)
 
     return targets.map { (targetName, baseUrl) ->

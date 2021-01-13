@@ -19,14 +19,15 @@ package com.netflix.spinnaker.clouddriver.cache;
 import com.netflix.spinnaker.cats.agent.CacheResult;
 import com.netflix.spinnaker.cats.provider.ProviderCache;
 import com.netflix.spinnaker.moniker.Moniker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
+import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface OnDemandAgent {
   Logger logger = LoggerFactory.getLogger(OnDemandAgent.class);
@@ -45,19 +46,22 @@ public interface OnDemandAgent {
     Job,
     TargetGroup,
     CloudFormation,
-    Manifest;
+    Manifest,
+    Function;
 
     static OnDemandType fromString(String s) {
       return Arrays.stream(values())
           .filter(v -> v.toString().equalsIgnoreCase(s))
           .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("Cannot create OnDemandType from '" + s + "'"));
+          .orElseThrow(
+              () -> new IllegalArgumentException("Cannot create OnDemandType from '" + s + "'"));
     }
   }
 
   boolean handles(OnDemandType type, String cloudProvider);
 
-  static class OnDemandResult {
+  @Data
+  class OnDemandResult {
     String sourceAgentType;
     Collection<String> authoritativeTypes = new ArrayList<>();
     CacheResult cacheResult;
@@ -65,7 +69,10 @@ public interface OnDemandAgent {
 
     public OnDemandResult() {}
 
-    public OnDemandResult(String sourceAgentType, CacheResult cacheResult, Map<String, Collection<String>> evictions) {
+    public OnDemandResult(
+        String sourceAgentType,
+        CacheResult cacheResult,
+        Map<String, Collection<String>> evictions) {
       this.sourceAgentType = sourceAgentType;
       this.cacheResult = cacheResult;
       this.evictions = evictions;
@@ -91,16 +98,21 @@ public interface OnDemandAgent {
           .sequence(sequence != null ? Integer.valueOf(sequence) : null)
           .build();
     } catch (Exception e) {
-      logger.warn("Unable to build moniker (details: {})", e);
+      logger.warn("Unable to build moniker", e);
       return null;
     }
   }
 
+  @Nullable
   OnDemandResult handle(ProviderCache providerCache, Map<String, ?> data);
+
   Collection<Map> pendingOnDemandRequests(ProviderCache providerCache);
 
   default Map pendingOnDemandRequest(ProviderCache providerCache, String id) {
     Collection<Map> pendingOnDemandRequests = pendingOnDemandRequests(providerCache);
-    return pendingOnDemandRequests.stream().filter(m -> id.equals(m.get("id"))).findFirst().orElse(null);
+    return pendingOnDemandRequests.stream()
+        .filter(m -> id.equals(m.get("id")))
+        .findFirst()
+        .orElse(null);
   }
 }

@@ -17,14 +17,15 @@
 package com.netflix.spinnaker.clouddriver.aws.provider.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.cats.agent.Agent
 import com.netflix.spinnaker.cats.agent.AgentProvider
-import com.netflix.spinnaker.cats.provider.ProviderSynchronizerTypeWrapper
 import com.netflix.spinnaker.clouddriver.aws.AmazonCloudProvider
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonApplicationLoadBalancerCachingAgent
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonCertificateCachingAgent
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonCloudFormationCachingAgent
+import com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonLaunchTemplateCachingAgent
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.AmazonLoadBalancerCachingAgent
 
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.ReservedInstancesCachingAgent
@@ -33,6 +34,7 @@ import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonCredentials
 import com.netflix.spinnaker.clouddriver.aws.security.EddaTimeoutConfig
 import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
+import com.netflix.spinnaker.clouddriver.model.ReservationReport
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsRepository
 import com.netflix.spinnaker.clouddriver.security.ProviderUtils
 import com.netflix.spinnaker.clouddriver.aws.edda.EddaApiFactory
@@ -45,13 +47,12 @@ import com.netflix.spinnaker.clouddriver.aws.provider.agent.InstanceCachingAgent
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.LaunchConfigCachingAgent
 import com.netflix.spinnaker.clouddriver.aws.provider.agent.ReservationReportCachingAgent
 import com.netflix.spinnaker.kork.dynamicconfig.DynamicConfigService
-import org.springframework.beans.factory.config.ConfigurableBeanFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.DependsOn
-import org.springframework.context.annotation.Scope
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
@@ -70,7 +71,7 @@ class AwsProviderConfig {
                           EddaApiFactory eddaApiFactory,
                           ApplicationContext ctx,
                           Registry registry,
-                          ExecutorService reservationReportPool,
+                          Optional<ExecutorService> reservationReportPool,
                           Optional<Collection<AgentProvider>> agentProviders,
                           EddaTimeoutConfig eddaTimeoutConfig,
                           DynamicConfigService dynamicConfigService) {
@@ -95,41 +96,30 @@ class AwsProviderConfig {
   }
 
   @Bean
+  @ConditionalOnProperty("reports.reservation.enabled")
   ExecutorService reservationReportPool(ReservationReportConfigurationProperties reservationReportConfigurationProperties) {
-    return Executors.newFixedThreadPool(reservationReportConfigurationProperties.threadPoolSize)
+    return Executors.newFixedThreadPool(
+        reservationReportConfigurationProperties.threadPoolSize,
+        new ThreadFactoryBuilder()
+          .setNameFormat(ReservationReport.class.getSimpleName() + "-%d")
+          .build());
   }
 
-  @Bean
-  AwsProviderSynchronizerTypeWrapper awsProviderSynchronizerTypeWrapper() {
-    new AwsProviderSynchronizerTypeWrapper()
-  }
-
-  class AwsProviderSynchronizerTypeWrapper implements ProviderSynchronizerTypeWrapper {
-    @Override
-    Class getSynchronizerType() {
-      return AwsProviderSynchronizer
-    }
-  }
-
-  class AwsProviderSynchronizer {}
-
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  @Bean
-  AwsProviderSynchronizer synchronizeAwsProvider(AwsProvider awsProvider,
-                                                 AmazonCloudProvider amazonCloudProvider,
-                                                 AmazonClientProvider amazonClientProvider,
-                                                 AmazonS3DataProvider amazonS3DataProvider,
-                                                 AccountCredentialsRepository accountCredentialsRepository,
-                                                 ObjectMapper objectMapper,
-                                                 EddaApiFactory eddaApiFactory,
-                                                 ApplicationContext ctx,
-                                                 Registry registry,
-                                                 ExecutorService reservationReportPool,
-                                                 Collection<AgentProvider> agentProviders,
-                                                 EddaTimeoutConfig eddaTimeoutConfig,
-                                                 DynamicConfigService dynamicConfigService) {
+  private void synchronizeAwsProvider(AwsProvider awsProvider,
+                                      AmazonCloudProvider amazonCloudProvider,
+                                      AmazonClientProvider amazonClientProvider,
+                                      AmazonS3DataProvider amazonS3DataProvider,
+                                      AccountCredentialsRepository accountCredentialsRepository,
+                                      ObjectMapper objectMapper,
+                                      EddaApiFactory eddaApiFactory,
+                                      ApplicationContext ctx,
+                                      Registry registry,
+                                      Optional<ExecutorService> reservationReportPool,
+                                      Collection<AgentProvider> agentProviders,
+                                      EddaTimeoutConfig eddaTimeoutConfig,
+                                      DynamicConfigService dynamicConfigService) {
     def scheduledAccounts = ProviderUtils.getScheduledAccounts(awsProvider)
-    Set<NetflixAmazonCredentials> allAccounts = ProviderUtils.buildThreadSafeSetOfAccounts(accountCredentialsRepository, NetflixAmazonCredentials)
+    Set<NetflixAmazonCredentials> allAccounts = ProviderUtils.buildThreadSafeSetOfAccounts(accountCredentialsRepository, NetflixAmazonCredentials, AmazonCloudProvider.ID)
 
     List<Agent> newlyAddedAgents = []
 
@@ -154,8 +144,8 @@ class AwsProviderConfig {
           newlyAddedAgents << new ReservedInstancesCachingAgent(amazonClientProvider, credentials, region.name, objectMapper, registry)
           newlyAddedAgents << new AmazonCertificateCachingAgent(amazonClientProvider, credentials, region.name, objectMapper, registry)
 
-          if (dynamicConfigService.isEnabled("aws.features.cloudFormation", false)) {
-            newlyAddedAgents << new AmazonCloudFormationCachingAgent(amazonClientProvider, credentials, region.name)
+          if (dynamicConfigService.isEnabled("aws.features.cloud-formation", false)) {
+            newlyAddedAgents << new AmazonCloudFormationCachingAgent(amazonClientProvider, credentials, region.name, registry)
           }
 
           if (credentials.eddaEnabled && !eddaTimeoutConfig.disabledRegions.contains(region.name)) {
@@ -165,18 +155,24 @@ class AwsProviderConfig {
               amazonClientProvider, credentials, region.name, objectMapper, ctx
             )
           }
+
+          if (dynamicConfigService.isEnabled("aws.features.launch-templates", false)) {
+            newlyAddedAgents << new AmazonLaunchTemplateCachingAgent(amazonClientProvider, credentials, region.name, objectMapper, registry)
+          }
         }
       }
     }
 
     // If there is an agent scheduler, then this provider has been through the AgentController in the past.
-    if (awsProvider.agentScheduler) {
-      synchronizeReservationReportCachingAgentAccounts(awsProvider, allAccounts)
-    } else {
-      // This caching agent runs across all accounts in one iteration (to maintain consistency).
-      newlyAddedAgents << new ReservationReportCachingAgent(
-        registry, amazonClientProvider, amazonS3DataProvider, allAccounts, objectMapper, reservationReportPool, ctx
-      )
+    if (reservationReportPool.isPresent()) {
+      if (awsProvider.agentScheduler) {
+        synchronizeReservationReportCachingAgentAccounts(awsProvider, allAccounts)
+      } else {
+        // This caching agent runs across all accounts in one iteration (to maintain consistency).
+        newlyAddedAgents << new ReservationReportCachingAgent(
+          registry, amazonClientProvider, amazonS3DataProvider, allAccounts, objectMapper, reservationReportPool.get(), ctx
+        )
+      }
     }
 
     agentProviders.findAll { it.supports(AwsProvider.PROVIDER_NAME) }.each {
@@ -185,11 +181,10 @@ class AwsProviderConfig {
 
     awsProvider.agents.addAll(newlyAddedAgents)
     awsProvider.synchronizeHealthAgents()
-
-    new AwsProviderSynchronizer()
   }
 
-  private void synchronizeReservationReportCachingAgentAccounts(AwsProvider awsProvider, Collection<NetflixAmazonCredentials> allAccounts) {
+  private static void synchronizeReservationReportCachingAgentAccounts(AwsProvider awsProvider,
+                                                                       Collection<NetflixAmazonCredentials> allAccounts) {
     ReservationReportCachingAgent reservationReportCachingAgent = awsProvider.agents.find { agent ->
       agent instanceof ReservationReportCachingAgent
     }

@@ -20,11 +20,10 @@ import com.amazonaws.services.ecs.model.NetworkInterface;
 import com.netflix.spinnaker.clouddriver.ecs.EcsCloudProvider;
 import com.netflix.spinnaker.clouddriver.model.HealthState;
 import com.netflix.spinnaker.clouddriver.model.Instance;
-import lombok.Data;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class EcsTask implements Instance, Serializable {
@@ -38,48 +37,57 @@ public class EcsTask implements Instance, Serializable {
   private String privateAddress;
   private NetworkInterface networkInterface;
 
-  public EcsTask(String name,
-                 Long launchTime,
-                 String lastStatus,
-                 String desiredStatus,
-                 String availabilityZone,
-                 List<Map<String, Object>> health,
-                 String privateAddress,
-                 NetworkInterface networkInterface) {
+  public EcsTask(
+      String name,
+      Long launchTime,
+      String lastStatus,
+      String desiredStatus,
+      String healthStatus,
+      String availabilityZone,
+      List<Map<String, Object>> health,
+      String privateAddress,
+      NetworkInterface networkInterface,
+      boolean hasHealthCheck) {
     this.name = name;
     providerType = cloudProvider = EcsCloudProvider.ID;
     this.launchTime = launchTime;
     this.health = health;
-    healthState = calculateHealthState(lastStatus, desiredStatus);
+    healthState = calculateHealthState(lastStatus, desiredStatus, healthStatus, hasHealthCheck);
     zone = availabilityZone;
     this.privateAddress = privateAddress;
     this.networkInterface = networkInterface;
   }
 
   /**
-   * Maps the Last Status and Desired Status of a Tasks to a Health State understandable by Spinnaker
-   * <p>
-   * The mapping is based on:
-   * <p>
-   * Task Life Cycle: http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_life_cycle.html
+   * Maps the Last Status and Desired Status of a Tasks to a Health State understandable by
+   * Spinnaker
    *
-   * @param lastStatus    Last reported status of the Task
+   * <p>The mapping is based on:
+   *
+   * <p>Task Life Cycle:
+   * http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_life_cycle.html
+   *
+   * @param lastStatus Last reported status of the Task
    * @param desiredStatus Desired status of the Task
    * @return Spinnaker understandable Health State
    */
-  private HealthState calculateHealthState(String lastStatus, String desiredStatus) {
-    HealthState currentState = null;
+  private HealthState calculateHealthState(
+      String lastStatus, String desiredStatus, String healthStatus, boolean hasHealthCheck) {
 
-    if ("RUNNING".equals(desiredStatus) && "PENDING".equals(lastStatus)) {
-      currentState = HealthState.Starting;
-    } else if ("RUNNING".equals(lastStatus)) {
-      currentState = HealthState.Up;
-    } else if ("STOPPED".equals(desiredStatus)) {
-      currentState = HealthState.Down;
-    } else {
-      currentState = HealthState.Unknown;
+    if (hasHealthCheck && "UNKNOWN".equals(healthStatus)) {
+      return HealthState.Starting;
+    } else if ("UNHEALTHY".equals(healthStatus)) {
+      return HealthState.Down;
     }
 
-    return currentState;
+    if ("RUNNING".equals(desiredStatus) && "PENDING".equals(lastStatus)) {
+      return HealthState.Starting;
+    } else if ("RUNNING".equals(lastStatus)) {
+      return HealthState.Up;
+    } else if ("STOPPED".equals(desiredStatus)) {
+      return HealthState.Down;
+    } else {
+      return HealthState.Unknown;
+    }
   }
 }

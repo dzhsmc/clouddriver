@@ -20,6 +20,7 @@ import com.google.api.services.compute.model.AcceleratorConfig
 import com.netflix.frigga.NameBuilder
 import com.netflix.frigga.Names
 import com.netflix.spinnaker.clouddriver.deploy.DeployDescription
+import com.netflix.spinnaker.clouddriver.google.deploy.description.BaseGoogleInstanceDescription
 import com.netflix.spinnaker.clouddriver.google.model.GoogleAutoHealingPolicy
 import com.netflix.spinnaker.clouddriver.google.model.GoogleAutoscalingPolicy
 import com.netflix.spinnaker.clouddriver.google.model.GoogleDistributionPolicy
@@ -52,7 +53,7 @@ class BasicGoogleDeployDescription extends BaseGoogleInstanceDescription impleme
   GoogleAutoHealingPolicy autoHealingPolicy
   Boolean overwriteAncestorAutoHealingPolicy = false
   /**
-   * Optional explicit specification of zones for an RMIG.
+   * Optional explicit specification of zones and target shape for an RMIG.
    */
   GoogleDistributionPolicy distributionPolicy
   // Capacity is optional. If it is specified, capacity.desired takes precedence over targetSize.

@@ -24,6 +24,7 @@ import com.netflix.spinnaker.cats.cache.Cache
 import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.google.deploy.GCEUtil
+import com.netflix.spinnaker.clouddriver.google.deploy.GoogleOperationPoller
 import com.netflix.spinnaker.clouddriver.google.deploy.description.UpsertGoogleAutoscalingPolicyDescription
 import com.netflix.spinnaker.clouddriver.google.model.GoogleAutoHealingPolicy
 import com.netflix.spinnaker.clouddriver.google.model.GoogleAutoscalingPolicy
@@ -46,6 +47,9 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
 
   @Autowired
   private GoogleClusterProvider googleClusterProvider
+
+  @Autowired
+  private GoogleOperationPoller googleOperationPoller
 
   @Autowired
   AtomicOperationsRegistry atomicOperationsRegistry
@@ -95,8 +99,7 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
 
     def autoscaler = null
     if (description.autoscalingPolicy) {
-      def ancestorAutoscalingPolicyDescription =
-        GCEUtil.buildAutoscalingPolicyDescriptionFromAutoscalingPolicy(serverGroup.autoscalingPolicy)
+      def ancestorAutoscalingPolicyDescription = serverGroup.autoscalingPolicy
       if (ancestorAutoscalingPolicyDescription) {
         task.updateStatus BASE_PHASE, "Updating autoscaler for $serverGroupName..."
 
@@ -106,15 +109,19 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
                                                                                       description.autoscalingPolicy))
 
         if (isRegional) {
-          timeExecute(
+          def updateOp = timeExecute(
               compute.regionAutoscalers().update(project, region, autoscaler),
               "compute.regionAutoscalers.update",
               TAG_SCOPE, SCOPE_REGIONAL, TAG_REGION, region)
+          googleOperationPoller.waitForRegionalOperation(compute, project, region,
+            updateOp.getName(), null, task, "autoScaler ${autoscaler.getName()} for server group $serverGroupName", BASE_PHASE)
         } else {
-          timeExecute(
+          def updateOp = timeExecute(
               compute.autoscalers().update(project, zone, autoscaler),
               "compute.autoscalers.update",
               TAG_SCOPE, SCOPE_ZONAL, TAG_ZONE, zone)
+          googleOperationPoller.waitForZonalOperation(compute, project, zone,
+            updateOp.getName(), null, task, "autoScaler ${autoscaler.getName()} for server group $serverGroupName", BASE_PHASE)
         }
       } else {
         task.updateStatus BASE_PHASE, "Creating new autoscaler for $serverGroupName..."
@@ -124,15 +131,19 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
                                              normalizeNewAutoscalingPolicy(description.autoscalingPolicy))
 
         if (isRegional) {
-          timeExecute(
+          def insertOp = timeExecute(
               compute.regionAutoscalers().insert(project, region, autoscaler),
               "compute.regionAutoscalers.insert",
               TAG_SCOPE, SCOPE_REGIONAL, TAG_REGION, region)
+          googleOperationPoller.waitForRegionalOperation(compute, project, region,
+            insertOp.getName(), null, task, "autoScaler ${autoscaler.getName()} for server group $serverGroupName", BASE_PHASE)
         } else {
-          timeExecute(
+          def insertOp = timeExecute(
               compute.autoscalers().insert(project, zone, autoscaler),
               "compute.autoscalers.insert",
               TAG_SCOPE, SCOPE_ZONAL, TAG_ZONE, zone)
+          googleOperationPoller.waitForZonalOperation(compute, project, zone,
+            insertOp.getName(), null, task, "autoScaler ${autoscaler.getName()} for server group $serverGroupName", BASE_PHASE)
         }
       }
     }
@@ -143,18 +154,22 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
 
       def regionalRequest = { List<InstanceGroupManagerAutoHealingPolicy> policy ->
         def request = new RegionInstanceGroupManagersSetAutoHealingRequest().setAutoHealingPolicies(policy)
-        timeExecute(
+        def autoHealingOp = timeExecute(
           compute.regionInstanceGroupManagers().setAutoHealingPolicies(project, region, serverGroupName, request),
           "compute.regionInstanceGroupManagers.setAutoHealingPolicies",
           TAG_SCOPE, SCOPE_REGIONAL, TAG_REGION, region)
+        googleOperationPoller.waitForRegionalOperation(compute, project, region,
+          autoHealingOp.getName(), null, task, "autoHealing policy ${policy} for server group $serverGroupName", BASE_PHASE)
       }
 
       def zonalRequest = { List<InstanceGroupManagerAutoHealingPolicy> policy ->
         def request = new InstanceGroupManagersSetAutoHealingRequest().setAutoHealingPolicies(policy)
-        timeExecute(
+        def autoHealingOp = timeExecute(
           compute.instanceGroupManagers().setAutoHealingPolicies(project, zone, serverGroupName, request),
           "compute.instanceGroupManagers.setAutoHealingPolicies",
           TAG_SCOPE, SCOPE_ZONAL, TAG_ZONE, zone)
+        googleOperationPoller.waitForZonalOperation(compute, project, zone,
+          autoHealingOp.getName(), null, task, "autoHealing policy ${policy} for server group $serverGroupName", BASE_PHASE)
       }
 
       if (ancestorAutoHealingPolicyDescription) {
@@ -211,6 +226,17 @@ class UpsertGoogleAutoscalingPolicyAtomicOperation extends GoogleAtomicOperation
     ["minNumReplicas", "maxNumReplicas", "coolDownPeriodSec", "customMetricUtilizations", "mode"].each {
       if (update[it] != null) {
         newDescription[it] = update[it]
+      }
+    }
+
+    // If scaleDownControl is completely absent, we leave the previous value.
+    // To remove it, set it to an empty object.
+    if (update.scaleDownControl != null) {
+      def scaleDownControl = update.scaleDownControl
+      if (scaleDownControl.timeWindowSec != null && scaleDownControl.maxScaledDownReplicas != null) {
+        newDescription.scaleDownControl = scaleDownControl
+      } else {
+        newDescription.scaleDownControl = null
       }
     }
 

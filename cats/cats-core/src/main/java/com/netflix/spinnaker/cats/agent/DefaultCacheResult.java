@@ -17,41 +17,57 @@
 package com.netflix.spinnaker.cats.agent;
 
 import com.netflix.spinnaker.cats.cache.CacheData;
-import lombok.Getter;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
 
-/**
- * An immutable CacheResult.
- */
+/** An immutable CacheResult. */
 public class DefaultCacheResult implements CacheResult {
-    private final Map<String, Collection<CacheData>> cacheResults;
-    private final Map<String, Collection<String>> evictions;
-    @Getter
-    private final Map<String, Object> introspectionDetails;
+  private final Map<String, Collection<CacheData>> cacheResults;
+  private final Map<String, Collection<String>> evictions;
+  @Getter private final Map<String, Object> introspectionDetails;
+  @Getter private final boolean partialResult;
 
-    public DefaultCacheResult(Map<String, Collection<CacheData>> cacheResults) {
-      this(cacheResults, new HashMap<>());
-    }
-    public DefaultCacheResult(Map<String, Collection<CacheData>> cacheResults, Map<String, Collection<String>> evictions) {
-      this(cacheResults, evictions, new HashMap<>());
-    }
+  public DefaultCacheResult(Map<String, Collection<CacheData>> cacheResults) {
+    this(cacheResults, new HashMap<>());
+  }
 
-    public DefaultCacheResult(Map<String, Collection<CacheData>> cacheResults, Map<String, Collection<String>> evictions, Map<String, Object> introspectionDetails) {
-        this.cacheResults = cacheResults;
-        this.evictions = evictions;
-        this.introspectionDetails = introspectionDetails;
-    }
+  public DefaultCacheResult(
+      Map<String, Collection<CacheData>> cacheResults, boolean partialResult) {
+    this(cacheResults, new HashMap<>(), new HashMap<>(), partialResult);
+  }
 
-    @Override
-    public Map<String, Collection<CacheData>> getCacheResults() {
-        return cacheResults;
-    }
+  public DefaultCacheResult(
+      Map<String, Collection<CacheData>> cacheResults, Map<String, Collection<String>> evictions) {
+    this(cacheResults, evictions, new HashMap<>());
+  }
 
-    @Override
-    public Map<String, Collection<String>> getEvictions() {
-        return evictions;
-    }
+  public DefaultCacheResult(
+      Map<String, Collection<CacheData>> cacheResults,
+      Map<String, Collection<String>> evictions,
+      Map<String, Object> introspectionDetails) {
+    this(cacheResults, evictions, introspectionDetails, false);
+  }
+
+  public DefaultCacheResult(
+      Map<String, Collection<CacheData>> cacheResults,
+      Map<String, Collection<String>> evictions,
+      Map<String, Object> introspectionDetails,
+      boolean partialResult) {
+    this.cacheResults = cacheResults;
+    this.evictions = evictions;
+    this.introspectionDetails = introspectionDetails;
+    this.partialResult = partialResult;
+  }
+
+  @Override
+  public Map<String, Collection<CacheData>> getCacheResults() {
+    return cacheResults;
+  }
+
+  @Override
+  public Map<String, Collection<String>> getEvictions() {
+    return evictions;
+  }
 }

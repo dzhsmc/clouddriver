@@ -75,7 +75,8 @@ class AppengineLoadBalancer implements LoadBalancer, Serializable {
         isDisabled: serverGroup.isDisabled(),
         allowsGradualTrafficMigration: serverGroup.allowsGradualTrafficMigration,
         instances: instances as Set,
-        detachedInstances: detachedInstances as Set
+        detachedInstances: detachedInstances as Set,
+        cloudProvider: AppengineCloudProvider.ID
       )
     } as Set<LoadBalancerServerGroup>
     null
@@ -100,4 +101,5 @@ enum ShardBy {
   UNSPECIFIED,
   COOKIE,
   IP,
+  RANDOM,
 }

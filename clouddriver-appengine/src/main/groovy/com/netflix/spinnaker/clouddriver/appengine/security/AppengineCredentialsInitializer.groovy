@@ -19,42 +19,42 @@ package com.netflix.spinnaker.clouddriver.appengine.security
 import com.netflix.spinnaker.cats.module.CatsModule
 import com.netflix.spinnaker.clouddriver.appengine.AppengineJobExecutor
 import com.netflix.spinnaker.clouddriver.appengine.config.AppengineConfigurationProperties
+
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsRepository
-import com.netflix.spinnaker.clouddriver.security.CredentialsInitializerSynchronizable
 import com.netflix.spinnaker.clouddriver.security.ProviderUtils
+import com.netflix.spinnaker.kork.configserver.ConfigFileService
 import groovy.util.logging.Slf4j
-import org.springframework.beans.factory.config.ConfigurableBeanFactory
+import org.apache.commons.lang3.StringUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Scope
 
 @Slf4j
 @Configuration
-class AppengineCredentialsInitializer implements CredentialsInitializerSynchronizable {
+class AppengineCredentialsInitializer {
   @Bean
-  List<? extends AppengineNamedAccountCredentials> appengineNamedAccountCredentials(String clouddriverUserAgentApplicationName,
-                                                                                    AppengineConfigurationProperties appengineConfigurationProperties,
-                                                                                    AccountCredentialsRepository accountCredentialsRepository,
-                                                                                    AppengineJobExecutor jobExecutor) {
+  List<? extends AppengineNamedAccountCredentials> appengineNamedAccountCredentials(
+    String clouddriverUserAgentApplicationName,
+    AppengineConfigurationProperties appengineConfigurationProperties,
+    AccountCredentialsRepository accountCredentialsRepository,
+    AppengineJobExecutor jobExecutor,
+    ConfigFileService configFileService) {
+
     synchronizeAppengineAccounts(clouddriverUserAgentApplicationName,
                                  appengineConfigurationProperties,
                                  null,
                                  accountCredentialsRepository,
-                                 jobExecutor)
+                                 jobExecutor,
+                                 configFileService)
   }
 
-  @Override
-  String getCredentialsSynchronizationBeanName() {
-    return "synchronizeAppengineAccounts"
-  }
+  private List<? extends AppengineNamedAccountCredentials> synchronizeAppengineAccounts(
+    String clouddriverUserAgentApplicationName,
+    AppengineConfigurationProperties appengineConfigurationProperties,
+    CatsModule catsModule,
+    AccountCredentialsRepository accountCredentialsRepository,
+    AppengineJobExecutor jobExecutor,
+    ConfigFileService configFileService) {
 
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  @Bean
-  List<? extends AppengineNamedAccountCredentials> synchronizeAppengineAccounts(String clouddriverUserAgentApplicationName,
-                                                                                AppengineConfigurationProperties appengineConfigurationProperties,
-                                                                                CatsModule catsModule,
-                                                                                AccountCredentialsRepository accountCredentialsRepository,
-                                                                                AppengineJobExecutor jobExecutor) {
     def (ArrayList<AppengineConfigurationProperties.ManagedAccount> accountsToAdd, List<String> namesOfDeletedAccounts) =
       ProviderUtils.calculateAccountDeltas(accountCredentialsRepository,
                                            AppengineNamedAccountCredentials,
@@ -62,9 +62,13 @@ class AppengineCredentialsInitializer implements CredentialsInitializerSynchroni
 
     accountsToAdd.each { AppengineConfigurationProperties.ManagedAccount managedAccount ->
       try {
-        managedAccount.initialize(jobExecutor)
+        String gcloudPath = appengineConfigurationProperties.gcloudPath
+        if (StringUtils.isEmpty(gcloudPath)) {
+          gcloudPath = "gcloud"
+        }
+        managedAccount.initialize(jobExecutor, gcloudPath)
 
-        def jsonKey = AppengineCredentialsInitializer.getJsonKey(managedAccount)
+        def jsonKey = configFileService.getContents(managedAccount.getJsonPath())
         def appengineAccount = new AppengineNamedAccountCredentials.Builder()
           .name(managedAccount.name)
           .environment(managedAccount.environment ?: managedAccount.name)
@@ -72,6 +76,7 @@ class AppengineCredentialsInitializer implements CredentialsInitializerSynchroni
           .project(managedAccount.project)
           .jsonKey(jsonKey)
           .applicationName(clouddriverUserAgentApplicationName)
+          .gcloudPath(gcloudPath)
           .jsonPath(managedAccount.jsonPath)
           .requiredGroupMembership(managedAccount.requiredGroupMembership)
           .permissions(managedAccount.permissions.build())
@@ -103,11 +108,5 @@ class AppengineCredentialsInitializer implements CredentialsInitializerSynchroni
     accountCredentialsRepository.all.findAll {
       it instanceof AppengineNamedAccountCredentials
     } as List<AppengineNamedAccountCredentials>
-  }
-
-  private static String getJsonKey(AppengineConfigurationProperties.ManagedAccount managedAccount) {
-    def inputStream = managedAccount.inputStream
-
-    inputStream ? new String(inputStream.bytes) : null
   }
 }

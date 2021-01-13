@@ -16,18 +16,17 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
+import static java.util.Collections.emptyList;
+
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.*;
 import com.netflix.spinnaker.clouddriver.data.task.DefaultTask;
 import com.netflix.spinnaker.clouddriver.data.task.Status;
 import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
-import org.assertj.core.api.Condition;
-
 import java.util.Collections;
 import java.util.Optional;
-
-import static java.util.Collections.emptyList;
+import org.assertj.core.api.Condition;
 
 class AbstractCloudFoundryAtomicOperationTest {
   final CloudFoundryClient client;
@@ -39,13 +38,22 @@ class AbstractCloudFoundryAtomicOperationTest {
   Task runOperation(AtomicOperation<?> op) {
     Task task = new DefaultTask("test");
     TaskRepository.threadLocalTask.set(task);
-    Optional
-      .ofNullable(op.operate(emptyList()))
-      .ifPresent(o -> task.addResultObjects(Collections.singletonList(o)));
+    try {
+      Optional.ofNullable(op.operate(emptyList()))
+          .ifPresent(o -> task.addResultObjects(Collections.singletonList(o)));
+    } catch (CloudFoundryApiException e) {
+      task.addResultObjects(Collections.singletonList(Collections.singletonMap("EXCEPTION", e)));
+    }
     return task;
   }
 
   static Condition<? super Status> status(String desc) {
-    return new Condition<>(status -> status.getStatus().equals(desc), "description = '" + desc + "'");
+    return new Condition<>(
+        status -> status.getStatus().equals(desc), "description = '" + desc + "'");
+  }
+
+  static Condition<? super Status> statusStartsWith(String desc) {
+    return new Condition<>(
+        status -> status.getStatus().startsWith(desc), "description = '" + desc + "'");
   }
 }

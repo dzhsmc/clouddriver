@@ -19,26 +19,26 @@ package com.netflix.spinnaker.clouddriver.artifacts.docker;
 
 import com.netflix.spinnaker.clouddriver.artifacts.config.ArtifactCredentials;
 import com.netflix.spinnaker.kork.artifacts.model.Artifact;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Data
-public class DockerArtifactCredentials implements ArtifactCredentials {
+final class DockerArtifactCredentials implements ArtifactCredentials {
   public static final String TYPE = "docker/image";
 
   private final String name;
   private final List<String> types = Collections.singletonList(TYPE);
 
-  public DockerArtifactCredentials(DockerArtifactAccount account) {
+  DockerArtifactCredentials(DockerArtifactAccount account) {
     this.name = account.getName();
   }
 
   public InputStream download(Artifact artifact) {
-    throw new UnsupportedOperationException("Docker references are passed on to cloud platforms who retrieve images directly");
+    throw new UnsupportedOperationException(
+        "Docker references are passed on to cloud platforms who retrieve images directly");
   }
 }

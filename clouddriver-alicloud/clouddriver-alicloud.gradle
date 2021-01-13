@@ -1,25 +1,12 @@
 dependencies {
+  implementation project(":cats:cats-core")
+  implementation project(":clouddriver-core")
+  implementation project(":clouddriver-eureka")
+  implementation project(":clouddriver-security")
 
-  compile project(":cats:cats-core")
-  compile project(":clouddriver-core")
-  compile project(":clouddriver-eureka")
-  compile project(":clouddriver-security")
-
-  compile spinnaker.dependency('korkExceptions')
-  compile spinnaker.dependency('bootActuator')
-  compile spinnaker.dependency('bootWeb')
-  compile spinnaker.dependency('frigga')
-  compile spinnaker.dependency('rxJava')
-  compile spinnaker.dependency('httpclient')
-  compile spinnaker.dependency('guava')
-
-  compile 'com.aestasit.infrastructure.sshoogr:sshoogr:0.9.25'
-  compile 'com.jcraft:jsch.agentproxy.jsch:0.0.9'
-  compile 'com.jcraft:jsch.agentproxy.connector-factory:0.0.9'
-
-  compileOnly "org.projectlombok:lombok:1.18.10"
-  annotationProcessor "org.projectlombok:lombok:1.18.10"
-  testAnnotationProcessor "org.projectlombok:lombok:1.18.10"
+  compileOnly "org.projectlombok:lombok"
+  annotationProcessor "org.projectlombok:lombok"
+  testAnnotationProcessor "org.projectlombok:lombok"
 
   implementation "com.netflix.spinnaker.kork:kork-core"
   implementation "com.netflix.spinnaker.kork:kork-exceptions"
@@ -27,21 +14,25 @@ dependencies {
   implementation "com.netflix.frigga:frigga"
   implementation "org.apache.httpcomponents:httpclient"
   implementation "org.apache.httpcomponents:httpcore"
-  implementation "com.github.ben-manes.caffeine:guava:2.6.2"
+  implementation "com.github.ben-manes.caffeine:guava"
   implementation "com.netflix.spinnaker.moniker:moniker"
-  implementation "javax.servlet:javax.servlet-api:4.0.1"
+  implementation "javax.servlet:javax.servlet-api"
 
-  compile 'com.aestasit.infrastructure.sshoogr:sshoogr:0.9.25'
-  compile 'com.jcraft:jsch.agentproxy.jsch:0.0.9'
-  compile 'com.jcraft:jsch.agentproxy.connector-factory:0.0.9'
-  compile 'com.aliyun:aliyun-java-sdk-core:4.4.2'
-  compile 'com.aliyun:aliyun-java-sdk-slb:3.2.9'
-  compile 'com.aliyun:aliyun-java-sdk-vpc:3.0.6'
-  compile 'com.aliyun:aliyun-java-sdk-ecs:4.16.10'
-  compile 'com.aliyun:aliyun-java-sdk-ess:2.3.3'
+  implementation 'com.aestasit.infrastructure.sshoogr:sshoogr:0.9.25'
+  implementation 'com.jcraft:jsch.agentproxy.jsch:0.0.9'
+  implementation 'com.jcraft:jsch.agentproxy.connector-factory:0.0.9'
+  implementation 'com.aliyun:aliyun-java-sdk-core:4.4.2'
+  implementation 'com.aliyun:aliyun-java-sdk-slb:3.2.9'
+  implementation 'com.aliyun:aliyun-java-sdk-vpc:3.0.6'
+  implementation 'com.aliyun:aliyun-java-sdk-ecs:4.16.10'
+  implementation 'com.aliyun:aliyun-java-sdk-ess:2.3.3'
+  implementation "org.springframework.boot:spring-boot-actuator"
+  implementation "org.springframework.boot:spring-boot-starter-web"
+  implementation "org.codehaus.groovy:groovy-all"
+  implementation "org.apache.commons:commons-lang3"
 
   testImplementation "cglib:cglib-nodep"
-  testImplementation "org.mockito:mockito-core:2.23.4"
+  testImplementation "org.mockito:mockito-core"
   testImplementation "org.objenesis:objenesis"
   testImplementation "org.spockframework:spock-core"
   testImplementation "org.spockframework:spock-spring"

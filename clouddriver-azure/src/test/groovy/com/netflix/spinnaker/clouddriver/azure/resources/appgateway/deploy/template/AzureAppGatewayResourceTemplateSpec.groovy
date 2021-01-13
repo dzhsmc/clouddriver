@@ -156,6 +156,9 @@ class AzureAppGatewayResourceTemplateSpec extends Specification {
     "tags" : null,
     "properties" : {
       "publicIPAllocationMethod" : "[variables('publicIPAddressType')]"
+    },
+    "sku" : {
+      "name" : "Basic"
     }
   }, {
     "apiVersion" : "[variables('apiVersion')]",
@@ -175,7 +178,7 @@ class AzureAppGatewayResourceTemplateSpec extends Specification {
       "subnet" : "subnet-testappgw-lb1-d1",
       "vnetResourceGroup" : null
     },
-    "dependsOn" : [ "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]" ],
+    "dependsOn" : [ "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]" ],
     "properties" : {
       "sku" : {
         "name" : "Standard_Small",
@@ -330,6 +333,9 @@ class AzureAppGatewayResourceTemplateSpec extends Specification {
     "tags" : null,
     "properties" : {
       "publicIPAllocationMethod" : "[variables('publicIPAddressType')]"
+    },
+    "sku" : {
+      "name" : "Basic"
     }
   }, {
     "apiVersion" : "[variables('apiVersion')]",
@@ -342,7 +348,7 @@ class AzureAppGatewayResourceTemplateSpec extends Specification {
       "subnet" : "subnet-testappgw-lb1-d1",
       "vnetResourceGroup" : null
     },
-    "dependsOn" : [ "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]" ],
+    "dependsOn" : [ "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]" ],
     "properties" : {
       "sku" : {
         "name" : "Standard_Small",

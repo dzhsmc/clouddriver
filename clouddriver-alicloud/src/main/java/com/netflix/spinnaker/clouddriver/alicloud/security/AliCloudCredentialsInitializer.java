@@ -17,7 +17,6 @@ package com.netflix.spinnaker.clouddriver.alicloud.security;
 
 import com.netflix.spinnaker.clouddriver.alicloud.security.config.AliCloudAccountConfig;
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsRepository;
-import com.netflix.spinnaker.clouddriver.security.CredentialsInitializerSynchronizable;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -28,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-public class AliCloudCredentialsInitializer implements CredentialsInitializerSynchronizable {
+public class AliCloudCredentialsInitializer {
 
   @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @Bean
@@ -55,10 +54,5 @@ public class AliCloudCredentialsInitializer implements CredentialsInitializerSyn
               aliCloudCredentialsList.add(aliCloudCredentials);
             });
     return aliCloudCredentialsList;
-  }
-
-  @Override
-  public String getCredentialsSynchronizationBeanName() {
-    return "synchronizeAlicloudAccounts";
   }
 }

@@ -16,14 +16,20 @@
 
 package com.netflix.spinnaker.clouddriver.titus.model
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter
+import com.fasterxml.jackson.annotation.JsonAnySetter
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.netflix.frigga.Names
 import com.netflix.spinnaker.clouddriver.model.HealthState
 import com.netflix.spinnaker.clouddriver.model.Instance
 import com.netflix.spinnaker.clouddriver.model.ServerGroup
 import com.netflix.spinnaker.clouddriver.titus.TitusCloudProvider
+import com.netflix.spinnaker.clouddriver.titus.client.model.DisruptionBudget
 import com.netflix.spinnaker.clouddriver.titus.client.model.Efs
 import com.netflix.spinnaker.clouddriver.titus.client.model.Job
 import com.netflix.spinnaker.clouddriver.titus.client.model.MigrationPolicy
+import com.netflix.spinnaker.clouddriver.titus.client.model.ServiceJobProcesses
+import com.netflix.spinnaker.clouddriver.titus.client.model.SubmitJobRequest
 
 /**
  * Equivalent of a Titus {@link com.netflix.spinnaker.clouddriver.titus.client.model.Job}
@@ -52,6 +58,7 @@ class TitusServerGroup implements ServerGroup, Serializable {
   Map containerAttributes
   Set<Instance> instances = [] as Set
   ServerGroup.Capacity capacity
+  DisruptionBudget disruptionBudget
   TitusServerGroupResources resources = new TitusServerGroupResources()
   TitusServerGroupPlacement placement = new TitusServerGroupPlacement()
   boolean disabled
@@ -61,12 +68,18 @@ class TitusServerGroup implements ServerGroup, Serializable {
   int runtimeLimitSecs
   Map buildInfo
   MigrationPolicy migrationPolicy
+  ServiceJobProcesses serviceJobProcesses
+  SubmitJobRequest.Constraints constraints
+
+  @JsonIgnore
+  private Map<String, Object> extraAttributes = new LinkedHashMap<String, Object>()
 
   TitusServerGroup() {}
 
   TitusServerGroup(Job job, String account, String region) {
     id = job.id
     name = job.name
+    disruptionBudget = job.disruptionBudget
     image << [dockerImageName: job.applicationName]
     image << [dockerImageVersion: job.version]
     image << [dockerImageDigest: job.digest]
@@ -105,6 +118,28 @@ class TitusServerGroup implements ServerGroup, Serializable {
         "digest": "${image.dockerImageDigest}".toString()
       ]
     ]
+    serviceJobProcesses = job.serviceJobProcesses
+    constraints = job.constraints
+  }
+
+  @JsonAnyGetter
+  @Override
+  Map<String, Object> getExtraAttributes() {
+    return extraAttributes
+  }
+
+  /**
+   * Setter for non explicitly defined values.
+   *
+   * Used for both Jackson mapping {@code @JsonAnySetter} as well
+   * as Groovy's implicit Map constructor (this is the reason the
+   * method is named {@code set(String name, Object value)}
+   * @param name The property name
+   * @param value The property value
+   */
+  @JsonAnySetter
+  void set(String name, Object value) {
+    extraAttributes.put(name, value)
   }
 
   @Override

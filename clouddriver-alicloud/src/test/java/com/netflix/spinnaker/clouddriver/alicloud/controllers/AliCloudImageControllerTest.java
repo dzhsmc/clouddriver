@@ -80,8 +80,8 @@ public class AliCloudImageControllerTest {
       attributes.put("regionId", REGION);
       attributes.put("imageName", "win_xxx_xxx_xxx.vhd");
       CacheData cacheData1 =
-        new DefaultCacheData(
-          "alicloud:images:ali-account:cn-hangzhou:win_xxx_xxx_xxx.vhd", attributes, null);
+          new DefaultCacheData(
+              "alicloud:images:ali-account:cn-hangzhou:win_xxx_xxx_xxx.vhd", attributes, null);
       cacheDatas.add(cacheData1);
       return cacheDatas;
     }

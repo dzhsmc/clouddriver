@@ -17,9 +17,8 @@
 package com.netflix.spinnaker.clouddriver.ecs.cache.model;
 
 import com.amazonaws.services.ecs.model.Container;
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class Task {
@@ -30,6 +29,7 @@ public class Task {
   String group;
   String lastStatus;
   String desiredStatus;
+  String healthStatus;
   long startedAt;
   List<Container> containers;
 }

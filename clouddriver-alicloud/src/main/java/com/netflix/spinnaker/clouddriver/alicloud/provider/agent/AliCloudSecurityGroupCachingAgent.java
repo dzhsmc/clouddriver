@@ -88,7 +88,7 @@ public class AliCloudSecurityGroupCachingAgent
         securityGroupsRequest.setPageNumber(pageNumber);
         securityGroupsResponse = client.getAcsResponse(securityGroupsRequest);
 
-        if (!CollectionUtils.isEmpty(securityGroupsResponse.getSecurityGroups())){
+        if (!CollectionUtils.isEmpty(securityGroupsResponse.getSecurityGroups())) {
           pageNumber = pageNumber + 1;
           for (SecurityGroup securityGroup : securityGroupsResponse.getSecurityGroups()) {
             securityGroupDatas.add(buildCatchData(securityGroup));
@@ -96,7 +96,6 @@ public class AliCloudSecurityGroupCachingAgent
         } else {
           break;
         }
-
       }
     } catch (ServerException e) {
       e.printStackTrace();

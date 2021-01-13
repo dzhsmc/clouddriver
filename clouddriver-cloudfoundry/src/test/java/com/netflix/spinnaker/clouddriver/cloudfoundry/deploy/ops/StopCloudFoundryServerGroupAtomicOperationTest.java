@@ -16,23 +16,27 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
-import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3.ProcessStats;
-import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.StopCloudFoundryServerGroupDescription;
-import com.netflix.spinnaker.clouddriver.helpers.OperationPoller;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.function.Supplier;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.atIndex;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class StopCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFoundryAtomicOperationTest{
-  private StopCloudFoundryServerGroupDescription desc = new StopCloudFoundryServerGroupDescription();
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryApiException;
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3.ProcessStats;
+import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.StopCloudFoundryServerGroupDescription;
+import com.netflix.spinnaker.clouddriver.data.task.Task;
+import com.netflix.spinnaker.clouddriver.helpers.OperationPoller;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class StopCloudFoundryServerGroupAtomicOperationTest
+    extends AbstractCloudFoundryAtomicOperationTest {
+  private StopCloudFoundryServerGroupDescription desc =
+      new StopCloudFoundryServerGroupDescription();
 
   StopCloudFoundryServerGroupAtomicOperationTest() {
     super();
@@ -49,13 +53,15 @@ class StopCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFoundr
     OperationPoller poller = mock(OperationPoller.class);
 
     //noinspection unchecked
-    when(poller.waitForOperation(any(Supplier.class), any(), anyLong(), any(), any(), any())).thenReturn(ProcessStats.State.DOWN);
+    when(poller.waitForOperation(any(Supplier.class), any(), any(), any(), any(), any()))
+        .thenReturn(ProcessStats.State.DOWN);
 
-    StopCloudFoundryServerGroupAtomicOperation op = new StopCloudFoundryServerGroupAtomicOperation(poller, desc);
+    StopCloudFoundryServerGroupAtomicOperation op =
+        new StopCloudFoundryServerGroupAtomicOperation(poller, desc);
 
     assertThat(runOperation(op).getHistory())
-      .has(status("Stopping 'myapp'"), atIndex(1))
-      .has(status("Stopped 'myapp'"), atIndex(2));
+        .has(status("Stopping 'myapp'"), atIndex(1))
+        .has(status("Stopped 'myapp'"), atIndex(2));
   }
 
   @Test
@@ -63,12 +69,21 @@ class StopCloudFoundryServerGroupAtomicOperationTest extends AbstractCloudFoundr
     OperationPoller poller = mock(OperationPoller.class);
 
     //noinspection unchecked
-    when(poller.waitForOperation(any(Supplier.class), any(), anyLong(), any(), any(), any())).thenReturn(ProcessStats.State.RUNNING);
+    when(poller.waitForOperation(any(Supplier.class), any(), any(), any(), any(), any()))
+        .thenReturn(ProcessStats.State.RUNNING);
 
-    StopCloudFoundryServerGroupAtomicOperation op = new StopCloudFoundryServerGroupAtomicOperation(poller, desc);
+    StopCloudFoundryServerGroupAtomicOperation op =
+        new StopCloudFoundryServerGroupAtomicOperation(poller, desc);
 
-    assertThat(runOperation(op).getHistory())
-      .has(status("Stopping 'myapp'"), atIndex(1))
-      .has(status("Failed to stop 'myapp' which instead is running"), atIndex(2));
+    Task task = runOperation(op);
+    List<Object> resultObjects = task.getResultObjects();
+    assertThat(resultObjects.size()).isEqualTo(1);
+    Object o = resultObjects.get(0);
+    assertThat(o).isInstanceOf(Map.class);
+    Object ex = ((Map) o).get("EXCEPTION");
+    assertThat(ex).isInstanceOf(CloudFoundryApiException.class);
+    assertThat(((CloudFoundryApiException) ex).getMessage())
+        .isEqualTo(
+            "Cloud Foundry API returned with error(s): Failed to stop 'myapp' which instead is running");
   }
 }

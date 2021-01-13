@@ -19,6 +19,7 @@ package com.netflix.spinnaker.clouddriver.google.provider.view
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.common.base.Strings
 import com.netflix.spinnaker.cats.cache.Cache
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.cache.RelationshipCacheFilter
@@ -53,21 +54,30 @@ class GoogleLoadBalancerProvider implements LoadBalancerProvider<GoogleLoadBalan
 
   @Override
   Set<GoogleLoadBalancerView> getApplicationLoadBalancers(String application) {
-    def pattern = Keys.getLoadBalancerKey("*", "*", "${application}*")
-    def identifiers = cacheView.filterIdentifiers(LOAD_BALANCERS.ns, pattern)
+    String pattern = Keys.getLoadBalancerKey("*", "*", "${application}*")
+    Set<String> identifiers = cacheView.filterIdentifiers(LOAD_BALANCERS.ns, pattern).toSet()
 
-    def applicationServerGroups = cacheView.getAll(
+    // It is possible to configure a server group in application A to use a load balancer from
+    // application B. Therefore, if (and only if) we have not already retrieved load balancer
+    // identifiers for all applications, we need to retrieve identifiers for every load balancer
+    // associated with a server group from this application.
+    if (!Strings.isNullOrEmpty(application)) {
+      Collection<CacheData> applicationServerGroups = cacheView.getAll(
         SERVER_GROUPS.ns,
         cacheView.filterIdentifiers(SERVER_GROUPS.ns, "${GoogleCloudProvider.ID}:*:${application}-*")
-    )
-    applicationServerGroups.each { CacheData serverGroup ->
-      identifiers.addAll(serverGroup.relationships[LOAD_BALANCERS.ns] ?: [])
+      )
+      applicationServerGroups.each { CacheData serverGroup ->
+        Collection<String> relatedLoadBalancers = serverGroup.relationships[LOAD_BALANCERS.ns] ?: []
+        relatedLoadBalancers.each { String lb ->
+          identifiers.add(lb)
+        }
+      }
     }
 
     // TODO(duftler): De-frigga this.
 
     cacheView.getAll(LOAD_BALANCERS.ns,
-                     identifiers.unique(),
+                     identifiers,
                      RelationshipCacheFilter.include(SERVER_GROUPS.ns, INSTANCES.ns)).collect { CacheData loadBalancerCacheData ->
       loadBalancersFromCacheData(loadBalancerCacheData, (loadBalancerCacheData?.relationships?.get(INSTANCES.ns) ?: []) as Set)
     } as Set
@@ -146,6 +156,7 @@ class GoogleLoadBalancerProvider implements LoadBalancerProvider<GoogleLoadBalan
           isDisabled: isDisabled,
           detachedInstances: [],
           instances: [],
+          cloudProvider: GoogleCloudProvider.ID,
       )
 
       // TODO(duftler): De-frigga this.
@@ -260,8 +271,11 @@ class GoogleLoadBalancerProvider implements LoadBalancerProvider<GoogleLoadBalan
 
     String instancePort
     String loadBalancerPort
+    String sessionAffinity
     switch (view.loadBalancerType) {
       case GoogleLoadBalancerType.NETWORK:
+        GoogleNetworkLoadBalancer.View nlbView = view as GoogleNetworkLoadBalancer.View
+        sessionAffinity = nlbView.sessionAffinity
         instancePort = Utils.derivePortOrPortRange(view.portRange)
         loadBalancerPort = Utils.derivePortOrPortRange(view.portRange)
         break
@@ -292,6 +306,7 @@ class GoogleLoadBalancerProvider implements LoadBalancerProvider<GoogleLoadBalan
                                    createdTime: view.createdTime,
                                    dnsname: view.ipAddress,
                                    ipAddress: view.ipAddress,
+                                   sessionAffinity: sessionAffinity,
                                    healthCheck: (view.hasProperty("healthCheck") && view.healthCheck) ? view.healthCheck : null,
                                    backendServiceHealthChecks: backendServiceHealthChecks ?: null,
                                    listenerDescriptions: [[
@@ -356,6 +371,7 @@ class GoogleLoadBalancerProvider implements LoadBalancerProvider<GoogleLoadBalan
     String loadBalancerName
     GoogleLoadBalancerType loadBalancerType
     GoogleHealthCheck.View healthCheck
+    String sessionAffinity
     Map<String, GoogleHealthCheck.View> backendServiceHealthChecks = [:]
     // TODO(ttomsu): Bizarre nesting of data. Necessary?
     List<Map<String, ListenerDescription>> listenerDescriptions = []

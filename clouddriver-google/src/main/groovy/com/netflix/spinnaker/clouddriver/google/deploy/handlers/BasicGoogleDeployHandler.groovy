@@ -18,7 +18,6 @@ package com.netflix.spinnaker.clouddriver.google.deploy.handlers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.api.services.compute.Compute
-import com.google.api.services.compute.model.AcceleratorConfig
 import com.google.api.services.compute.model.Autoscaler
 import com.google.api.services.compute.model.Backend
 import com.google.api.services.compute.model.BackendService
@@ -64,6 +63,7 @@ import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
+import static com.google.common.base.Preconditions.checkArgument
 import static com.netflix.spinnaker.clouddriver.google.deploy.GCEUtil.BACKEND_SERVICE_NAMES
 import static com.netflix.spinnaker.clouddriver.google.deploy.GCEUtil.GLOBAL_LOAD_BALANCER_NAMES
 import static com.netflix.spinnaker.clouddriver.google.deploy.GCEUtil.LOAD_BALANCING_POLICY
@@ -133,10 +133,10 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
   }
 
   /**
-   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1404-trusty-v20160509a", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
-   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "freeFormDetails": "something", "image": "ubuntu-1404-trusty-v20160509a", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
-   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1404-trusty-v20160509a", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "loadBalancers": ["testlb", "testhttplb"], "instanceMetadata": { "load-balancer-names": "myapp-testlb", "global-load-balancer-names": "myapp-testhttplb", "backend-service-names": "my-backend-service"}, "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
-   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1404-trusty-v20160509a", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "tags": ["my-tag-1", "my-tag-2"], "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
+   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1604-xenial-v20200317", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
+   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "freeFormDetails": "something", "image": "ubuntu-1604-xenial-v20200317", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
+   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1604-xenial-v20200317", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "loadBalancers": ["testlb", "testhttplb"], "instanceMetadata": { "load-balancer-names": "myapp-testlb", "global-load-balancer-names": "myapp-testhttplb", "backend-service-names": "my-backend-service"}, "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
+   * curl -X POST -H "Content-Type: application/json" -d '[ { "createServerGroup": { "application": "myapp", "stack": "dev", "image": "ubuntu-1604-xenial-v20200317", "targetSize": 3, "instanceType": "f1-micro", "zone": "us-central1-f", "tags": ["my-tag-1", "my-tag-2"], "credentials": "my-account-name" }} ]' localhost:7002/gce/ops
    *
    * @param description
    * @param priorOutputs
@@ -171,7 +171,7 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
     task.updateStatus BASE_PHASE, "Produced server group name: $serverGroupName"
 
     def machineTypeName
-    if (description.instanceType.startsWith('custom')) {
+    if (description.instanceType.contains('custom-')) {
       machineTypeName = description.instanceType
     } else {
       machineTypeName = GCEUtil.queryMachineType(description.instanceType, location, credentials, task, BASE_PHASE)
@@ -220,6 +220,18 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
     task.updateStatus BASE_PHASE, "Composing server group $serverGroupName..."
 
     description.baseDeviceName = serverGroupName
+
+    def bootImage = GCEUtil.getBootImage(description,
+      task,
+      BASE_PHASE,
+      clouddriverUserAgentApplicationName,
+      googleConfigurationProperties.baseImageProjects,
+      safeRetry,
+      this)
+
+    // We include a subset of the image's attributes and a reference in the disks.
+    // Furthermore, we're using the underlying raw compute model classes
+    // so we can't simply change the representation to support what we need for shielded VMs.
     def attachedDisks = GCEUtil.buildAttachedDisks(description,
                                                    null,
                                                    false,
@@ -228,6 +240,7 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
                                                    BASE_PHASE,
                                                    clouddriverUserAgentApplicationName,
                                                    googleConfigurationProperties.baseImageProjects,
+                                                   bootImage,
                                                    safeRetry,
                                                    this)
 
@@ -378,14 +391,18 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
       .sequence(sequence)
       .build()
 
-    namer.applyMoniker(description, moniker)
+    // Apply moniker to labels which are subsequently recorded in the instance template.
+    namer.applyMoniker(new GoogleInstanceTemplate(labels: labels), moniker)
 
     // Accelerators are supported for zonal server groups only.
-    List<AcceleratorConfig> acceleratorConfigs = description.regional ? [] : description.acceleratorConfigs
+    if (description.acceleratorConfigs) {
+      checkArgument(!description.regional || description.selectZones,
+        "Accelerators are only supported with regional server groups if the zones are specified by the user.");
+    }
 
     def instanceProperties = new InstanceProperties(machineType: machineTypeName,
                                                     disks: attachedDisks,
-                                                    guestAccelerators: acceleratorConfigs ?: [],
+                                                    guestAccelerators: description.acceleratorConfigs ?: [],
                                                     networkInterfaces: [networkInterface],
                                                     canIpForward: canIpForward,
                                                     metadata: metadata,
@@ -393,6 +410,11 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
                                                     labels: labels,
                                                     scheduling: scheduling,
                                                     serviceAccounts: serviceAccount)
+
+    if (GCEUtil.isShieldedVmCompatible(bootImage)) {
+      def shieldedVmConfig = GCEUtil.buildShieldedVmConfig(description)
+      instanceProperties.setShieldedVmConfig(shieldedVmConfig)
+    }
 
     if (description.minCpuPlatform) {
       instanceProperties.minCpuPlatform = description.minCpuPlatform
@@ -435,7 +457,7 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
                                                          description.source.serverGroupName)
 
       description.targetSize = ancestorServerGroup.capacity.desired
-      description.autoscalingPolicy = GCEUtil.buildAutoscalingPolicyDescriptionFromAutoscalingPolicy(ancestorServerGroup.autoscalingPolicy)
+      description.autoscalingPolicy = ancestorServerGroup.autoscalingPolicy
     }
 
     def autoHealingHealthCheck = null
@@ -499,14 +521,26 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
     def willUpdateIlbs = !description.disableTraffic && internalLoadBalancers
 
     if (isRegional) {
-      if (description.selectZones && description.distributionPolicy && description.distributionPolicy.zones) {
-        log.info("Configuring explicit zones selected for regional server group: ${description.distributionPolicy.zones}")
-        List<DistributionPolicyZoneConfiguration> selectedZones = description.distributionPolicy.zones.collect { String z ->
-          new DistributionPolicyZoneConfiguration().setZone(GCEUtil.buildZoneUrl(project, z))
+      if (description.distributionPolicy) {
+        DistributionPolicy distributionPolicy = new DistributionPolicy()
+
+        if (description.selectZones && description.distributionPolicy.zones) {
+          log.info("Configuring explicit zones selected for regional server group: ${description.distributionPolicy.zones}")
+          List<DistributionPolicyZoneConfiguration> selectedZones = description.distributionPolicy.zones.collect { String z ->
+            new DistributionPolicyZoneConfiguration().setZone(GCEUtil.buildZoneUrl(project, z))
+          }
+          distributionPolicy.setZones(selectedZones)
         }
-        DistributionPolicy distributionPolicy = new DistributionPolicy().setZones(selectedZones)
-        instanceGroupManager.setDistributionPolicy(distributionPolicy)
+
+        if (description.distributionPolicy.targetShape) {
+          distributionPolicy.setTargetShape(description.distributionPolicy.targetShape)
+        }
+
+        if (distributionPolicy.getZones() || distributionPolicy.getTargetShape()) {
+          instanceGroupManager.setDistributionPolicy(distributionPolicy)
+        }
       }
+
       migCreateOperation = timeExecute(
           compute.regionInstanceGroupManagers().insert(project, region, instanceGroupManager),
           "compute.regionInstanceGroupManagers.insert",
@@ -662,5 +696,9 @@ class BasicGoogleDeployHandler implements DeployHandler<BasicGoogleDeployDescrip
       description, credentials, customUserData)
     task.updateStatus BASE_PHASE, "Resolved user data."
     return userData
+  }
+
+  static class GoogleInstanceTemplate implements GoogleLabeledResource {
+    Map<String, String> labels
   }
 }

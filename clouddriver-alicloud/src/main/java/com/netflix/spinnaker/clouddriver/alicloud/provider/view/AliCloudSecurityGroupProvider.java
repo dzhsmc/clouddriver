@@ -158,4 +158,10 @@ public class AliCloudSecurityGroupProvider implements SecurityGroupProvider<AliC
   public String getCloudProvider() {
     return AliCloudProvider.ID;
   }
+
+  @Override
+  public AliCloudSecurityGroup getById(String account, String region, String id, String vpcId) {
+    // TO-DO
+    return get(account, region, id, vpcId);
+  }
 }

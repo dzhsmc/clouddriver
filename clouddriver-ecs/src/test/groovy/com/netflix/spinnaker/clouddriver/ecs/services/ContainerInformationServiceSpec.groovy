@@ -19,14 +19,18 @@ package com.netflix.spinnaker.clouddriver.ecs.services
 import com.amazonaws.services.ec2.model.Instance
 import com.amazonaws.services.ec2.model.Placement
 import com.amazonaws.services.ecs.model.Container
+import com.amazonaws.services.ecs.model.ContainerDefinition
+import com.amazonaws.services.ecs.model.HealthCheck
 import com.amazonaws.services.ecs.model.LoadBalancer
 import com.amazonaws.services.ecs.model.NetworkBinding
+import com.amazonaws.services.ecs.model.TaskDefinition
 import com.netflix.spinnaker.clouddriver.ecs.cache.client.*
 import com.netflix.spinnaker.clouddriver.ecs.cache.model.ContainerInstance
 import com.netflix.spinnaker.clouddriver.ecs.cache.model.Service
 import com.netflix.spinnaker.clouddriver.ecs.cache.model.Task
 import com.netflix.spinnaker.clouddriver.ecs.cache.model.TaskHealth
 import com.netflix.spinnaker.clouddriver.ecs.security.ECSCredentialsConfig
+import org.assertj.core.util.Lists
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -35,6 +39,7 @@ class ContainerInformationServiceSpec extends Specification {
   def taskCacheClient = Mock(TaskCacheClient)
   def serviceCacheClient = Mock(ServiceCacheClient)
   def taskHealthCacheClient = Mock(TaskHealthCacheClient)
+  def taskDefinitionCacheClient = Mock(TaskDefinitionCacheClient)
   def ecsInstanceCacheClient = Mock(EcsInstanceCacheClient)
   def containerInstanceCacheClient = Mock(ContainerInstanceCacheClient)
 
@@ -43,6 +48,7 @@ class ContainerInformationServiceSpec extends Specification {
     taskCacheClient,
     serviceCacheClient,
     taskHealthCacheClient,
+    taskDefinitionCacheClient,
     ecsInstanceCacheClient,
     containerInstanceCacheClient)
 
@@ -66,12 +72,20 @@ class ContainerInformationServiceSpec extends Specification {
 
     serviceCacheClient.get(_) >> cachedService
     taskHealthCacheClient.get(_) >> cachedTaskHealth
+    taskCacheClient.get(_) >> new Task(lastStatus: 'RUNNING')
+    taskDefinitionCacheClient.get(_) >> new TaskDefinition()
 
     def expectedHealthStatus = [
       [
         instanceId: taskId,
         state     : state,
         type      : type
+      ],
+      [
+        instanceId: taskId,
+        state     : 'Unknown',
+        type      :'ecs',
+        healthClass: 'platform'
       ]
     ]
 
@@ -97,6 +111,7 @@ class ContainerInformationServiceSpec extends Specification {
 
     serviceCacheClient.get(_) >> null
     taskHealthCacheClient.get(_) >> cachedTaskHealth
+    taskDefinitionCacheClient.get(_) >> new TaskDefinition()
 
     def expectedHealthStatus = [
       [
@@ -142,21 +157,94 @@ class ContainerInformationServiceSpec extends Specification {
     retrievedHealthStatus == expectedHealthStatus
   }
 
-  def 'should throw an exception when the service has multiple loadbalancers'() {
-    given:
+  def 'should return correct health status based on last task status with no health checks defined'() {
+    setup:
+    def taskId = 'task-id'
+    def serviceName = 'test-service-name'
     def cachedService = new Service(
-      loadBalancers: [new LoadBalancer(), new LoadBalancer()]
+      serviceName: serviceName,
+      loadBalancers: [new LoadBalancer()]
     )
 
     serviceCacheClient.get(_) >> cachedService
-    taskHealthCacheClient.get(_) >> new TaskHealth()
+    taskCacheClient.get(_) >> new Task(lastStatus: lastStatus, healthStatus: healthStatus)
+    taskDefinitionCacheClient.get(_) >> new TaskDefinition()
+    def expectedHealthStatus = [
+      [
+        instanceId: taskId,
+        state     : 'Unknown',
+        type      : 'loadBalancer'
+      ],
+      [
+        instanceId: taskId,
+        state     : resultStatus,
+        type      : 'ecs',
+        healthClass: 'platform'
+      ]
+    ]
+    def retrievedHealthStatus = service.getHealthStatus(taskId, serviceName, 'test-account', 'us-west-1')
 
-    when:
-    service.getHealthStatus('task-id', 'test-service-name', 'test-account', 'us-west-1')
+    expect:
+    retrievedHealthStatus == expectedHealthStatus
 
-    then:
-    IllegalArgumentException exception = thrown()
-    exception.message == 'Cannot have more than 1 load balancer while checking ECS health.'
+    where:
+    healthStatus  | resultStatus  | lastStatus
+    'UNKNOWN'     | 'Starting'    | 'PROVISIONING'
+    'UNKNOWN'     | 'Starting'    | 'PENDING'
+    'UNKNOWN'     | 'Starting'    | 'ACTIVATING'
+    'UNKNOWN'     | 'Unknown'     | 'RUNNING'
+    'UNHEALTHY'   | 'Down'        | 'PROVISIONING'
+    'UNHEALTHY'   | 'Down'        | 'PENDING'
+    'UNHEALTHY'   | 'Down'        | 'ACTIVATING'
+    'UNHEALTHY'   | 'Down'        | 'RUNNING'
+  }
+
+  def 'should return correct health status based on health status with health check defined'() {
+    setup:
+    def taskId = 'task-id'
+    def serviceName = 'test-service-name'
+    def cachedService = new Service(
+      serviceName: serviceName,
+      loadBalancers: [new LoadBalancer()]
+    )
+
+    serviceCacheClient.get(_) >> cachedService
+    taskCacheClient.get(_) >> new Task(lastStatus: lastStatus, healthStatus: healthStatus)
+    taskDefinitionCacheClient.get(_) >> new TaskDefinition(containerDefinitions:  Lists.newArrayList(new ContainerDefinition
+      (healthCheck: new HealthCheck(
+        command: Lists.newArrayList("myCommand")))))
+    def expectedHealthStatus = [
+      [
+        instanceId: taskId,
+        state     : 'Unknown',
+        type      : 'loadBalancer'
+      ],
+      [
+        instanceId: taskId,
+        state     : resultStatus,
+        type      : 'ecs',
+        healthClass: 'platform'
+      ]
+    ]
+    def retrievedHealthStatus = service.getHealthStatus(taskId, serviceName, 'test-account', 'us-west-1')
+
+    expect:
+    retrievedHealthStatus == expectedHealthStatus
+
+    where:
+    healthStatus  | resultStatus  | lastStatus
+    'UNKNOWN'     | 'Starting'    | 'PROVISIONING'
+    'UNKNOWN'     | 'Starting'    | 'PENDING'
+    'UNKNOWN'     | 'Starting'    | 'ACTIVATING'
+    'UNKNOWN'     | 'Starting'    | 'RUNNING'
+    'UNHEALTHY'   | 'Down'        | 'PROVISIONING'
+    'UNHEALTHY'   | 'Down'        | 'PENDING'
+    'UNHEALTHY'   | 'Down'        | 'ACTIVATING'
+    'UNHEALTHY'   | 'Down'        | 'RUNNING'
+    'HEALTHY'     | 'Starting'    | 'PROVISIONING'
+    'HEALTHY'     | 'Starting'    | 'PENDING'
+    'HEALTHY'     | 'Starting'    | 'ACTIVATING'
+    'HEALTHY'     | 'Unknown'     | 'RUNNING'
   }
 
   def 'should return a proper private address for a task'() {
@@ -225,6 +313,48 @@ class ContainerInformationServiceSpec extends Specification {
     retrievedIp == null
   }
 
+  def 'should return a null when container instance IP address is not yet cached'() {
+    given:
+    def account = 'test-account'
+    def region = 'us-west-1'
+    def containerInstanceArn = 'container-instance-arn'
+    def port = 1337
+
+    def ecsAccount = new ECSCredentialsConfig.Account(
+      name: account,
+      awsAccount: 'aws-' + account
+    )
+
+    def task = new Task(
+      containerInstanceArn: containerInstanceArn,
+      containers: [
+        new Container(
+          networkBindings: [
+            new NetworkBinding(
+              hostPort: port
+            )
+          ]
+        )
+      ]
+    )
+
+    def containerInstance = new ContainerInstance(
+      ec2InstanceId: 'i-deadbeef'
+    )
+
+    def instance = new Instance()
+
+    containerInstanceCacheClient.get(_) >> containerInstance
+    ecsInstanceCacheClient.find(_, _, _) >> [instance]
+    ecsCredentialsConfig.getAccounts() >> [ecsAccount]
+
+    when:
+    def retrievedIp = service.getTaskPrivateAddress(account, region, task)
+
+    then:
+    retrievedIp == null
+  }
+
   def 'should return a unknown when there is no container instance for the task'() {
     given:
     def task = new Task(
@@ -284,18 +414,99 @@ class ContainerInformationServiceSpec extends Specification {
     retrievedIp == null
   }
 
-  def 'should throw an exception when task has multiple containers'() {
+  def 'should return null when task has multiple network bindings'() {
     given:
-    def task = new Task(
-      containers: [new Container(), new Container(), new Container()]
+    def account = 'test-account'
+    def region = 'us-west-1'
+
+    def ecsAccount = new ECSCredentialsConfig.Account(
+      name: account,
+      awsAccount: 'aws-' + account
     )
 
+    def task = new Task(
+      containerInstanceArn: 'container-instance-arn',
+      containers: [
+        new Container(
+          networkBindings: [
+            new NetworkBinding(
+              hostPort: 1234
+            )
+          ]
+        ),
+        new Container(
+          networkBindings: [
+            new NetworkBinding(
+              hostPort: 5678
+            )
+          ]
+        )
+      ]
+    )
+
+    def containerInstance = new ContainerInstance(
+      ec2InstanceId: 'i-deadbeef'
+    )
+
+    def instance = new Instance(
+      privateIpAddress: '127.0.0.1'
+    )
+
+    containerInstanceCacheClient.get(_) >> containerInstance
+    ecsInstanceCacheClient.find(_, _, _) >> [instance]
+    ecsCredentialsConfig.getAccounts() >> [ecsAccount]
+
     when:
-    service.getTaskPrivateAddress('test-account', 'region', task)
+    def retrievedIp = service.getTaskPrivateAddress(account, region, task)
 
     then:
-    IllegalArgumentException exception = thrown()
-    exception.message == 'Multiple containers for a task is not supported.'
+    retrievedIp == null
+  }
+
+  def 'should return a proper address when task has multiple containers but only one network binding'() {
+    given:
+    def account = 'test-account'
+    def region = 'us-west-1'
+    def containerInstanceArn = 'container-instance-arn'
+    def ip = '127.0.0.1'
+    def port = 1337
+
+    def ecsAccount = new ECSCredentialsConfig.Account(
+      name: account,
+      awsAccount: 'aws-' + account
+    )
+
+    def task = new Task(
+      containerInstanceArn: containerInstanceArn,
+      containers: [
+        new Container(
+          networkBindings: [
+            new NetworkBinding(
+              hostPort: port
+            )
+          ]
+        ),
+        new Container()
+      ]
+    )
+
+    def containerInstance = new ContainerInstance(
+      ec2InstanceId: 'i-deadbeef'
+    )
+
+    def instance = new Instance(
+      privateIpAddress: ip
+    )
+
+    containerInstanceCacheClient.get(_) >> containerInstance
+    ecsInstanceCacheClient.find(_, _, _) >> [instance]
+    ecsCredentialsConfig.getAccounts() >> [ecsAccount]
+
+    when:
+    def retrievedIp = service.getTaskPrivateAddress(account, region, task)
+
+    then:
+    retrievedIp == ip + ':' + port
   }
 
   def 'should throw an exception when container has multiple ec2 instances'() {
@@ -373,6 +584,31 @@ class ContainerInformationServiceSpec extends Specification {
 
     when:
     def retrievedZone = service.getTaskZone('test-account', 'us-west-1', task)
+
+    then:
+    retrievedZone == null
+  }
+
+  def 'should return null when container instance zone is not yet cached'() {
+    given:
+    def task = new Task(containerInstanceArn: 'container-instance-arn')
+    def containerInstance = new ContainerInstance(ec2InstanceId: 'i-deadbeef')
+    def ecsAccount = new ECSCredentialsConfig.Account(
+      name: 'ecs-account',
+      awsAccount: 'aws-test-account'
+    )
+    def givenInstance = new Instance(
+      instanceId: 'i-deadbeef',
+      privateIpAddress: '0.0.0.0',
+      publicIpAddress: '127.0.0.1'
+    )
+
+    containerInstanceCacheClient.get(_) >> containerInstance
+    ecsCredentialsConfig.getAccounts() >> [ecsAccount]
+    ecsInstanceCacheClient.find(_, _, _) >> [givenInstance]
+
+    when:
+    def retrievedZone = service.getTaskZone('ecs-account', 'us-west-1', task)
 
     then:
     retrievedZone == null

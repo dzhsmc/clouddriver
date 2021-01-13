@@ -16,6 +16,9 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
+import static java.util.stream.Collectors.toList;
+
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryApiException;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryClient;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.RouteId;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.AbstractCloudFoundryServerGroupDescription;
@@ -23,13 +26,9 @@ import com.netflix.spinnaker.clouddriver.cloudfoundry.model.CloudFoundryLoadBala
 import com.netflix.spinnaker.clouddriver.cloudfoundry.model.CloudFoundrySpace;
 import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import static java.util.stream.Collectors.toList;
+import javax.annotation.Nullable;
 
 public abstract class AbstractCloudFoundryLoadBalancerMappingOperation {
   protected abstract String getPhase();
@@ -39,7 +38,11 @@ public abstract class AbstractCloudFoundryLoadBalancerMappingOperation {
   }
 
   // VisibleForTesting
-  boolean mapRoutes(AbstractCloudFoundryServerGroupDescription description, @Nullable List<String> routes, CloudFoundrySpace space, String serverGroupId) {
+  boolean mapRoutes(
+      AbstractCloudFoundryServerGroupDescription description,
+      @Nullable List<String> routes,
+      CloudFoundrySpace space,
+      String serverGroupId) {
     if (routes == null) {
       getTask().updateStatus(getPhase(), "No load balancers provided to create or update");
       return true;
@@ -47,37 +50,34 @@ public abstract class AbstractCloudFoundryLoadBalancerMappingOperation {
 
     getTask().updateStatus(getPhase(), "Creating or updating load balancers");
 
-    List<String> invalidRoutes = new ArrayList<>();
-
     CloudFoundryClient client = description.getClient();
-    List<RouteId> routeIds = routes.stream()
-      .map(routePath -> {
-        RouteId routeId = client.getRoutes().toRouteId(routePath);
-        if (routeId == null) {
-          invalidRoutes.add(routePath);
-        }
-        return routeId;
-      })
-      .filter(Objects::nonNull)
-      .collect(toList());
-
-    for (String routePath : invalidRoutes) {
-      getTask().updateStatus(getPhase(), "Invalid format or domain for load balancer '" + routePath + "'");
-    }
-
-    if (!invalidRoutes.isEmpty()) {
-      getTask().fail();
-      return false;
-    }
+    List<RouteId> routeIds =
+        routes.stream()
+            .map(
+                routePath -> {
+                  RouteId routeId = client.getRoutes().toRouteId(routePath);
+                  if (routeId == null) {
+                    throw new IllegalArgumentException(routePath + " is an invalid route");
+                  }
+                  return routeId;
+                })
+            .filter(Objects::nonNull)
+            .collect(toList());
 
     for (RouteId routeId : routeIds) {
-      CloudFoundryLoadBalancer loadBalancer = client.getRoutes().createRoute(routeId, space.getId());
+      CloudFoundryLoadBalancer loadBalancer =
+          client.getRoutes().createRoute(routeId, space.getId());
       if (loadBalancer == null) {
-        getTask().updateStatus(getPhase(), "Load balancer already exists in another organization and space");
-        getTask().fail();
-        return false;
+        throw new CloudFoundryApiException(
+            "Load balancer already exists in another organization and space");
       }
-      getTask().updateStatus(getPhase(), "Mapping load balancer '" + loadBalancer.getName() + "' to " + description.getServerGroupName());
+      getTask()
+          .updateStatus(
+              getPhase(),
+              "Mapping load balancer '"
+                  + loadBalancer.getName()
+                  + "' to "
+                  + description.getServerGroupName());
       client.getApplications().mapRoute(serverGroupId, loadBalancer.getId());
     }
 

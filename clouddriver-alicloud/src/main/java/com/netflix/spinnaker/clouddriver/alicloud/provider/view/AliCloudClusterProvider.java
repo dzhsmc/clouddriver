@@ -45,15 +45,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class AliCloudClusterProvider
-  implements ClusterProvider<AliCloudCluster>, ServerGroupProvider {
+    implements ClusterProvider<AliCloudCluster>, ServerGroupProvider {
 
   private final ObjectMapper objectMapper;
 
@@ -63,12 +62,11 @@ public class AliCloudClusterProvider
 
   static final Gson gson = new Gson();
 
-  private final Logger log =
-    LoggerFactory.getLogger(AliCloudClusterProvider.class);
+  private final Logger log = LoggerFactory.getLogger(AliCloudClusterProvider.class);
 
   @Autowired
   public AliCloudClusterProvider(
-    ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
+      ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
     this.objectMapper = objectMapper;
     this.cacheView = cacheView;
     this.provider = provider;
@@ -95,7 +93,7 @@ public class AliCloudClusterProvider
 
   @Override
   public AliCloudCluster getCluster(
-    String application, String account, String name, boolean includeDetails) {
+      String application, String account, String name, boolean includeDetails) {
     String clusterKey = Keys.getClusterKey(name, application, account);
     CacheData cluster = cacheView.get(CLUSTERS.ns, clusterKey);
     if (cluster == null) {
@@ -110,7 +108,7 @@ public class AliCloudClusterProvider
   }
 
   private List<AliCloudCluster> translateClusters(
-    Collection<CacheData> clusterData, boolean includeDetails) {
+      Collection<CacheData> clusterData, boolean includeDetails) {
     List<AliCloudCluster> set = new ArrayList<>();
     Collection<String> allHealthyKeys = cacheView.getIdentifiers(HEALTH.ns);
     for (CacheData clusterCache : clusterData) {
@@ -127,8 +125,8 @@ public class AliCloudClusterProvider
         serverGroups.add(bulidServerGroup(allHealthyKeys, serverGroupCache));
       }
       AliCloudCluster cluster =
-        new AliCloudCluster(
-          application, AliCloudProvider.ID, accountName, serverGroups, loadBalancers);
+          new AliCloudCluster(
+              application, AliCloudProvider.ID, accountName, serverGroups, loadBalancers);
       set.add(cluster);
     }
     return set;
@@ -136,12 +134,16 @@ public class AliCloudClusterProvider
 
   @Override
   public AliCloudServerGroup getServerGroup(
-    String account, String region, String name, boolean includeDetails) {
+      String account, String region, String name, boolean includeDetails) {
     String serverGroupKey = Keys.getServerGroupKey(name, account, region);
     CacheData serverGroupData = cacheView.get(SERVER_GROUPS.ns, serverGroupKey);
-    log.info("yejingtao bug log getServerGroup serverGroupKey "+ serverGroupKey + " " + serverGroupData);
+    log.info(
+        "yejingtao bug log getServerGroup serverGroupKey "
+            + serverGroupKey
+            + " "
+            + serverGroupData);
     Collection<String> allHealthyKeys = cacheView.getIdentifiers(HEALTH.ns);
-    log.info("yejingtao bug log getServerGroup allHealthyKeys "+ allHealthyKeys.size());
+    log.info("yejingtao bug log getServerGroup allHealthyKeys " + allHealthyKeys.size());
     if (serverGroupData == null) {
       return null;
     }
@@ -149,7 +151,7 @@ public class AliCloudClusterProvider
   }
 
   private AliCloudServerGroup bulidServerGroup(
-    Collection<String> allHealthyKeys, CacheData serverGroupCache) {
+      Collection<String> allHealthyKeys, CacheData serverGroupCache) {
     Map<String, Object> attributes = serverGroupCache.getAttributes();
 
     AliCloudServerGroup serverGroup = new AliCloudServerGroup();
@@ -203,12 +205,12 @@ public class AliCloudClusterProvider
         m.put("type", provider.getDisplayName());
         m.put("healthClass", "platform");
         HealthState healthState =
-          !"Active".equals(lifecycleState)
-            ? HealthState.Down
-            : !flag
-            ? HealthState.Down
-            : HealthHelper.judgeInstanceHealthyState(
-            allHealthyKeys, loadBalancerIds, id.toString(), cacheView);
+            !"Active".equals(lifecycleState)
+                ? HealthState.Down
+                : !flag
+                    ? HealthState.Down
+                    : HealthHelper.judgeInstanceHealthyState(
+                        allHealthyKeys, loadBalancerIds, id.toString(), cacheView);
         if (healthState.equals(HealthState.Unknown)) {
           m.put("state", HealthState.Down);
         } else {
@@ -217,8 +219,8 @@ public class AliCloudClusterProvider
         health.add(m);
         String zone = (String) instance.get("creationType");
         AliCloudInstance i =
-          new AliCloudInstance(
-            String.valueOf(id), null, zone, null, AliCloudProvider.ID, healthState, health);
+            new AliCloudInstance(
+                String.valueOf(id), null, zone, null, AliCloudProvider.ID, healthState, health);
         s.add(i);
       }
     }
@@ -259,19 +261,19 @@ public class AliCloudClusterProvider
     ServerGroup.InstanceCounts instanceCounts = new ServerGroup.InstanceCounts();
     instanceCounts.setTotal(serverGroup.getInstances().size());
     serverGroup
-      .getInstances()
-      .forEach(
-        instance -> {
-          if (instance.getHealthState().equals(HealthState.Up)) {
-            countMap.put("up", countMap.getOrDefault("up", 0) + 1);
-          }
-          if (instance.getHealthState().equals(HealthState.Down)) {
-            countMap.put("down", countMap.getOrDefault("down", 0) + 1);
-          }
-          if (instance.getHealthState().equals(HealthState.Unknown)) {
-            countMap.put("unKnown", countMap.getOrDefault("unKnown", 0) + 1);
-          }
-        });
+        .getInstances()
+        .forEach(
+            instance -> {
+              if (instance.getHealthState().equals(HealthState.Up)) {
+                countMap.put("up", countMap.getOrDefault("up", 0) + 1);
+              }
+              if (instance.getHealthState().equals(HealthState.Down)) {
+                countMap.put("down", countMap.getOrDefault("down", 0) + 1);
+              }
+              if (instance.getHealthState().equals(HealthState.Unknown)) {
+                countMap.put("unKnown", countMap.getOrDefault("unKnown", 0) + 1);
+              }
+            });
     instanceCounts.setUp(countMap.getOrDefault("up", 0));
     instanceCounts.setDown(countMap.getOrDefault("down", 0));
     instanceCounts.setUnknown(countMap.getOrDefault("unKnown", 0));
@@ -304,7 +306,7 @@ public class AliCloudClusterProvider
     account = Optional.ofNullable(account).orElse("*");
     region = Optional.ofNullable(region).orElse("*");
     return cacheView.filterIdentifiers(
-      SERVER_GROUPS.ns, Keys.getServerGroupKey("*", "*", account, region));
+        SERVER_GROUPS.ns, Keys.getServerGroupKey("*", "*", account, region));
   }
 
   @Override
@@ -332,7 +334,7 @@ public class AliCloudClusterProvider
 
   @Override
   public Set<AliCloudCluster> getClusters(
-    String application, String account, boolean includeDetails) {
+      String application, String account, boolean includeDetails) {
     Map<String, Set<AliCloudCluster>> clusterDetails = getClusterDetails(application);
     return clusterDetails.isEmpty() ? null : clusterDetails.get(account);
   }
@@ -345,15 +347,15 @@ public class AliCloudClusterProvider
       clusters.add(cluster);
     }
     return translateClusters(clusters, true).size() > 0
-      ? translateClusters(clusters, true).get(0)
-      : null;
+        ? translateClusters(clusters, true).get(0)
+        : null;
   }
 
   private static Map<String, Set<AliCloudCluster>> mapResponse(
-    Collection<AliCloudCluster> clusters) {
+      Collection<AliCloudCluster> clusters) {
     Map<String, Set<AliCloudCluster>> results =
-      clusters.stream()
-        .collect(Collectors.groupingBy(AliCloudCluster::getAccountName, Collectors.toSet()));
+        clusters.stream()
+            .collect(Collectors.groupingBy(AliCloudCluster::getAccountName, Collectors.toSet()));
     // Map<String, Set<AliCloudCluster>> results =
     // clusters.stream().collect(Collectors.toMap(AliCloudCluster::getAccountName, p ->
     // Collections.singleton(p), (x, y) ->{

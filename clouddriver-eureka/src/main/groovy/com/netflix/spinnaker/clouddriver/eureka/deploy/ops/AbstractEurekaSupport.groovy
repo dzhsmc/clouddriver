@@ -49,9 +49,11 @@ abstract class AbstractEurekaSupport {
                                          Task task,
                                          String phaseName,
                                          DiscoveryStatus discoveryStatus,
-                                         List<String> instanceIds) {
+                                         List<String> instanceIds,
+                                         boolean strict = false) {
     updateDiscoveryStatusForInstances(
-      description, task, phaseName, discoveryStatus, instanceIds, eurekaSupportConfigurationProperties.retryMax, eurekaSupportConfigurationProperties.retryMax
+      description, task, phaseName, discoveryStatus, instanceIds,
+      eurekaSupportConfigurationProperties.retryMax, eurekaSupportConfigurationProperties.retryMax, strict
     )
   }
 
@@ -62,7 +64,8 @@ abstract class AbstractEurekaSupport {
                                          DiscoveryStatus discoveryStatus,
                                          List<String> instanceIds,
                                          int findApplicationNameRetryMax,
-                                         int updateEurekaRetryMax) {
+                                         int updateEurekaRetryMax,
+                                         boolean strict = false) {
 
     if (eurekaSupportConfigurationProperties == null) {
       throw new IllegalStateException("eureka configuration not supplied")
@@ -103,6 +106,7 @@ abstract class AbstractEurekaSupport {
 
     def errors = [:]
     def fatals = []
+    List<String> skipped = []
     int index = 0
     for (String instanceId : instanceIds) {
       if (index > 0) {
@@ -113,7 +117,7 @@ abstract class AbstractEurekaSupport {
         if (index % eurekaSupportConfigurationProperties.attemptShortCircuitEveryNInstances == 0) {
           try {
             def hasUpInstances = doesCachedClusterContainDiscoveryStatus(
-              clusterProviders, description.credentialAccount, description.region, description.asgName, "UP"
+              clusterProviders, description.account, description.region, description.asgName, "UP"
             )
             if (hasUpInstances.present && !hasUpInstances.get()) {
               // there are no UP instances, we can return early
@@ -121,7 +125,7 @@ abstract class AbstractEurekaSupport {
               break
             }
           } catch (Exception e) {
-            def account = description.credentialAccount
+            def account = description.account
             def region = description.region
             def asgName = description.asgName
             AbstractEurekaSupport.log.error("[$phaseName] - Unable to verify cached discovery status (account: ${account}, region: ${region}, asgName: ${asgName}", e)
@@ -146,8 +150,22 @@ abstract class AbstractEurekaSupport {
           }
         }
       } catch (RetrofitError retrofitError) {
-        if (retrofitError.response?.status == 404 && discoveryStatus == DiscoveryStatus.Disable) {
-          task.updateStatus phaseName, "Could not find ${instanceId} in application $applicationName in discovery, skipping disable operation."
+        if (discoveryStatus == DiscoveryStatus.Disable) {
+          def alwaysSkippable = retrofitError.response?.status == 404
+          def willSkip = alwaysSkippable || !strict
+          def skippingOrNot = willSkip ? "skipping" : "not skipping"
+
+          String errorMessage = "Failed updating status of ${instanceId} in application $applicationName in discovery" +
+            " and strict=$strict, $skippingOrNot disable operation."
+
+          // in strict mode, only 404 errors on disable are ignored
+          if (!willSkip) {
+            errors[instanceId] = retrofitError
+          } else {
+            skipped.add(instanceId)
+          }
+
+          task.updateStatus phaseName, errorMessage
         } else {
           errors[instanceId] = retrofitError
         }
@@ -173,6 +191,11 @@ abstract class AbstractEurekaSupport {
         task.fail()
         AbstractEurekaSupport.log.info("[$phaseName] - Failed marking discovery $discoveryStatus.value for instances ${errors}")
       }
+    }
+    if (!skipped.isEmpty()) {
+      task.addResultObjects([
+        ["discoverySkippedInstanceIds": instanceIds]
+      ])
     }
   }
 
@@ -264,36 +287,50 @@ abstract class AbstractEurekaSupport {
     return serverGroup
   }
 
+  /**
+   * Returns a list of instanceIds to disable. Only really used for RollingRedBlack strategy.
+   * The list represents the given percentage of "enabled" instances.
+   * Enabled instance is one that that has at least 1 health provider indicating it's UP
+   * and zero health providers indicating it's DOWN.
+   *
+   * @param account
+   * @param region
+   * @param asgName
+   * @param instances instanceIDs to pick from
+   * @param desiredPercentage (0-100)
+   * @return list of instance IDs
+   */
   List<String> getInstanceToModify(String account, String region, String asgName, List<String> instances, int desiredPercentage) {
     ServerGroup serverGroup = getCachedServerGroup(clusterProviders, account, region, asgName)
     if (!serverGroup) {
       return []
     }
 
-    Set<String> modified = []
-    Set<String> unmodified = []
+    Set<String> ineligible = []
+    Set<String> eligible = []
 
     instances.each { instanceId ->
-      def instanceInExistingServerGroup = serverGroup.instances.find { it.name == instanceId }
+      def instanceInExistingServerGroup = serverGroup.instances.find { it.name == instanceId   }
+
       if (instanceInExistingServerGroup) {
-        boolean isUp = false
-        instanceInExistingServerGroup.health?.flatten()?.each { Map<String, String> health ->
-          if (DiscoveryStatus.Enable.value.equalsIgnoreCase(health?.eurekaStatus)) {
-            isUp = true
-          }
+        boolean anyDown = instanceInExistingServerGroup.health?.flatten()?.any {
+          Map<String, String> health -> ("down".compareToIgnoreCase(health.state ?: "") == 0)
+        }
+        boolean anyUp = instanceInExistingServerGroup.health?.flatten()?.any {
+          Map<String, String> health -> ("up".compareToIgnoreCase(health.state ?: "") == 0)
         }
 
-        if (isUp) {
-          unmodified.add(instanceId)
+        if (anyUp && !anyDown) {
+          eligible.add(instanceId)
         } else {
-          modified.add(instanceId)
+          ineligible.add(instanceId)
         }
       }
     }
 
     return EnableDisablePercentageCategorizer.getInstancesToModify(
-      modified as List<String>,
-      unmodified as List<String>,
+      ineligible as List<String>,
+      eligible as List<String>,
       desiredPercentage
     )
   }

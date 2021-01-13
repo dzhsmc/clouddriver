@@ -19,6 +19,9 @@ package com.netflix.spinnaker.clouddriver.artifacts.github;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,32 +29,28 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 @Configuration
 @ConditionalOnProperty("artifacts.github.enabled")
 @EnableConfigurationProperties(GitHubArtifactProviderProperties.class)
 @RequiredArgsConstructor
 @Slf4j
-public class GitHubArtifactConfiguration {
+class GitHubArtifactConfiguration {
   private final GitHubArtifactProviderProperties gitHubArtifactProviderProperties;
   private final ObjectMapper objectMapper;
 
   @Bean
   List<? extends GitHubArtifactCredentials> gitHubArtifactCredentials(OkHttpClient okHttpClient) {
-    return gitHubArtifactProviderProperties.getAccounts()
-      .stream()
-      .map(a -> {
-        try {
-          return new GitHubArtifactCredentials(a, okHttpClient, objectMapper);
-        } catch (Exception e) {
-          log.warn("Failure instantiating GitHub artifact account {}: ", a, e);
-          return null;
-        }
-      })
-      .filter(Objects::nonNull)
-      .collect(Collectors.toList());
+    return gitHubArtifactProviderProperties.getAccounts().stream()
+        .map(
+            a -> {
+              try {
+                return new GitHubArtifactCredentials(a, okHttpClient, objectMapper);
+              } catch (Exception e) {
+                log.warn("Failure instantiating GitHub artifact account {}: ", a, e);
+                return null;
+              }
+            })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
   }
 }

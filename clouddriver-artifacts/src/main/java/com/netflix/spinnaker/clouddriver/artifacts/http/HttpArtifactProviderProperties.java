@@ -18,15 +18,14 @@
 package com.netflix.spinnaker.clouddriver.artifacts.http;
 
 import com.netflix.spinnaker.clouddriver.artifacts.config.ArtifactProvider;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 @ConfigurationProperties("artifacts.http")
-public class HttpArtifactProviderProperties implements ArtifactProvider<HttpArtifactAccount> {
+final class HttpArtifactProviderProperties implements ArtifactProvider<HttpArtifactAccount> {
   private boolean enabled;
   private List<HttpArtifactAccount> accounts = new ArrayList<>();
 }

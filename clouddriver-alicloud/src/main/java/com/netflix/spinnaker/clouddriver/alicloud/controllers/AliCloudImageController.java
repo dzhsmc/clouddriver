@@ -53,18 +53,18 @@ public class AliCloudImageController {
     }
     glob = "*" + glob + "*";
     String imageSearchKey =
-      Keys.getImageKey(
-        glob,
-        StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account,
-        StringUtils.isAllBlank(lookupOptions.region) ? "*" : lookupOptions.region);
+        Keys.getImageKey(
+            glob,
+            StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account,
+            StringUtils.isAllBlank(lookupOptions.region) ? "*" : lookupOptions.region);
     Collection<String> imageIdentifiers = cacheView.filterIdentifiers(IMAGES.ns, imageSearchKey);
     Collection<CacheData> images = cacheView.getAll(IMAGES.ns, imageIdentifiers, null);
     String nameKey =
-      Keys.getNamedImageKey(
-        StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account, glob);
+        Keys.getNamedImageKey(
+            StringUtils.isAllBlank(lookupOptions.account) ? "*" : lookupOptions.account, glob);
     Collection<String> nameImageIdentifiers = cacheView.filterIdentifiers(NAMED_IMAGES.ns, nameKey);
     Collection<CacheData> nameImages =
-      cacheView.getAll(NAMED_IMAGES.ns, nameImageIdentifiers, null);
+        cacheView.getAll(NAMED_IMAGES.ns, nameImageIdentifiers, null);
     return filter(render(nameImages, images), extractTagFilters(request));
   }
 
@@ -88,11 +88,11 @@ public class AliCloudImageController {
     for (Map tag : tags) {
       imageMap.put(tag.get("tagKey").toString(), tag.get("tagValue").toString());
     }
-    for(Map.Entry<String, String> entry : tagFilters.entrySet()){
+    for (Map.Entry<String, String> entry : tagFilters.entrySet()) {
       String tagKey = entry.getKey();
       String tagValue = entry.getValue();
       if (StringUtils.isNotEmpty(imageMap.get(tagKey))
-        && imageMap.get(tagKey).equalsIgnoreCase(tagValue)) {
+          && imageMap.get(tagKey).equalsIgnoreCase(tagValue)) {
         flag = true;
       } else {
         flag = false;
@@ -123,8 +123,8 @@ public class AliCloudImageController {
       String parameterName = parameterNames.nextElement();
       if (parameterName.toLowerCase().startsWith("tag:")) {
         parameters.put(
-          parameterName.replaceAll("tag:", "").toLowerCase(),
-          request.getParameter(parameterName));
+            parameterName.replaceAll("tag:", "").toLowerCase(),
+            request.getParameter(parameterName));
       }
     }
     return parameters;

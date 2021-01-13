@@ -53,7 +53,7 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
   IAcsClient client;
 
   public AliCloudImageCachingAgent(
-    AliCloudCredentials account, String region, ObjectMapper objectMapper, IAcsClient client) {
+      AliCloudCredentials account, String region, ObjectMapper objectMapper, IAcsClient client) {
     this.account = account;
     this.region = region;
     this.objectMapper = objectMapper;
@@ -61,13 +61,13 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
   }
 
   static final Collection<AgentDataType> types =
-    Collections.unmodifiableCollection(
-      new ArrayList<AgentDataType>() {
-        {
-          add(AUTHORITATIVE.forType(IMAGES.ns));
-          add(AUTHORITATIVE.forType(NAMED_IMAGES.ns));
-        }
-      });
+      Collections.unmodifiableCollection(
+          new ArrayList<AgentDataType>() {
+            {
+              add(AUTHORITATIVE.forType(IMAGES.ns));
+              add(AUTHORITATIVE.forType(NAMED_IMAGES.ns));
+            }
+          });
 
   @Override
   public CacheResult loadData(ProviderCache providerCache) {
@@ -76,7 +76,7 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
     List<CacheData> nameImageDatas = new ArrayList<>();
 
     DescribeImagesRequest imagesRequest = new DescribeImagesRequest();
-    //imagesRequest.setImageOwnerAlias("system");
+    // imagesRequest.setImageOwnerAlias("system");
 
     int imagePageNumber = 1;
     int imagePageSize = 50;
@@ -92,10 +92,10 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
           for (Image image : describeImagesResponse.getImages()) {
             Map<String, Object> attributes = objectMapper.convertValue(image, Map.class);
             CacheData data =
-              new DefaultCacheData(
-                Keys.getImageKey(image.getImageId(), account.getName(), region),
-                attributes,
-                new HashMap<>(16));
+                new DefaultCacheData(
+                    Keys.getImageKey(image.getImageId(), account.getName(), region),
+                    attributes,
+                    new HashMap<>(16));
             imageDatas.add(data);
           }
           if (describeImagesResponse.getImages().size() < imagePageSize) {
@@ -115,7 +115,7 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
     int nameImagesPageSize = 50;
 
     DescribeImagesRequest nameImagesRequest = new DescribeImagesRequest();
-    //nameImagesRequest.setImageOwnerAlias("self");
+    // nameImagesRequest.setImageOwnerAlias("self");
     DescribeImagesResponse nameImagesResponse;
 
     try {
@@ -128,10 +128,10 @@ public class AliCloudImageCachingAgent implements CachingAgent, AccountAware {
           for (Image image : nameImagesResponse.getImages()) {
             Map<String, Object> attributes = objectMapper.convertValue(image, Map.class);
             CacheData data =
-              new DefaultCacheData(
-                Keys.getNamedImageKey(account.getName(), image.getImageName()),
-                attributes,
-                new HashMap<>(16));
+                new DefaultCacheData(
+                    Keys.getNamedImageKey(account.getName(), image.getImageName()),
+                    attributes,
+                    new HashMap<>(16));
             nameImageDatas.add(data);
           }
           if (nameImagesResponse.getImages().size() < imagePageSize) {

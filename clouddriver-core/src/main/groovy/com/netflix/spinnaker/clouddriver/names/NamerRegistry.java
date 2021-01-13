@@ -19,25 +19,26 @@ package com.netflix.spinnaker.clouddriver.names;
 
 import com.netflix.spinnaker.moniker.Namer;
 import com.netflix.spinnaker.moniker.frigga.FriggaReflectiveNamer;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * The idea is each provider can register (per-account) based on config naming
- * strategy. This assigns a `moniker` to any named resource which is then pushed
- * through the rest of Spinnaker and can be handled without prior knowledge of what
- * naming strategy was used. This is the only place the mapping from (provider, account, resource) -&lt; namer
- * must happen within Spinnaker.
+ * The idea is each provider can register (per-account) based on config naming strategy. This
+ * assigns a `moniker` to any named resource which is then pushed through the rest of Spinnaker and
+ * can be handled without prior knowledge of what naming strategy was used. This is the only place
+ * the mapping from (provider, account, resource) -&lt; namer must happen within Spinnaker.
  */
 public class NamerRegistry {
-  final private List<NamingStrategy> namingStrategies;
-  private static Namer defaultNamer = new FriggaReflectiveNamer();
+
+  private static Namer<Object> DEFAULT_NAMER = new FriggaReflectiveNamer();
+
   private static ProviderLookup providerLookup = new ProviderLookup();
 
-  public static Namer getDefaultNamer() {
-    return defaultNamer;
+  private final List<NamingStrategy> namingStrategies;
+
+  public static Namer<Object> getDefaultNamer() {
+    return DEFAULT_NAMER;
   }
 
   public static ProviderLookup lookup() {
@@ -50,25 +51,28 @@ public class NamerRegistry {
 
   public Namer getNamingStrategy(String strategyName) {
     return this.namingStrategies.stream()
-      .filter(strategy -> strategy.getName().equalsIgnoreCase(strategyName))
-      .findFirst()
-      .orElseThrow(() -> new IllegalArgumentException("Could not find naming strategy '" + strategyName + "'"));
+        .filter(strategy -> strategy.getName().equalsIgnoreCase(strategyName))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Could not find naming strategy '" + strategyName + "'"));
   }
 
   @Slf4j
   public static class ResourceLookup {
-    private ConcurrentHashMap<Class, Namer> map = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Class<?>, Namer<?>> map = new ConcurrentHashMap<>();
 
-    public Namer withResource(Class resource) {
+    public <T> Namer<T> withResource(Class<T> resource) {
       if (!map.containsKey(resource)) {
         log.debug("Looking up a namer for a non-registered resource");
-        return getDefaultNamer();
+        return (Namer<T>) getDefaultNamer();
       } else {
-        return map.get(resource);
+        return (Namer<T>) map.get(resource);
       }
     }
 
-    public void setNamer(Class resource, Namer namer) {
+    public <T> void setNamer(Class<T> resource, Namer<T> namer) {
       map.put(resource, namer);
     }
   }

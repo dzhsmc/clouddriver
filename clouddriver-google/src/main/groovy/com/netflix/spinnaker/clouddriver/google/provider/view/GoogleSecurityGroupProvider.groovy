@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.clouddriver.google.provider.view
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.api.services.iam.v1.model.ServiceAccount
 import com.netflix.spinnaker.cats.cache.Cache
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.cache.RelationshipCacheFilter
@@ -84,6 +85,11 @@ class GoogleSecurityGroupProvider implements SecurityGroupProvider<GoogleSecurit
     getAllMatchingKeyPattern(Keys.getSecurityGroupKey(name, '*', region, account), true)[0]
   }
 
+  @Override
+  GoogleSecurityGroup getById(String account, String region, String id, String vpcId) {
+    getAllMatchingKeyPattern(Keys.getSecurityGroupKey('*', id, region, account), true)[0]
+  }
+
   Set<GoogleSecurityGroup> getAllMatchingKeyPattern(String pattern, boolean includeRules) {
     loadResults(includeRules, cacheView.filterIdentifiers(SECURITY_GROUPS.ns, pattern))
   }
@@ -116,6 +122,8 @@ class GoogleSecurityGroupProvider implements SecurityGroupProvider<GoogleSecurit
       selfLink: firewall.selfLink,
       sourceTags: firewall.sourceTags,
       targetTags: firewall.targetTags,
+      sourceServiceAccounts: firewall.sourceServiceAccounts,
+      targetServiceAccounts: firewall.targetServiceAccounts,
       inboundRules: inboundRules
     )
   }
@@ -180,20 +188,46 @@ class GoogleSecurityGroupProvider implements SecurityGroupProvider<GoogleSecurit
     return rangeRules.sort()
   }
 
-  static List<String> getMatchingServerGroupNames(String account,
-                                                  Set<GoogleSecurityGroup> securityGroups,
-                                                  Set<String> tags,
-                                                  String networkName) {
+  /**
+   * Calculates security group names that match account, networkName, and tags
+   * @param account - GCE account name.
+   * @param securityGroups - Set of server groups to filter.
+   * @param tags - GCE network tags to filter security groups by.
+   * @param serviceAccounts - GCE service accounts to filter security groups by.
+   * @param networkName - GCE network name.
+   * @return Security group names that match account, networkName, and network tags.
+   */
+  static List<String> getMatchingSecurityGroupNames(String account,
+                                                    Set<GoogleSecurityGroup> securityGroups,
+                                                    Set<String> tags,
+                                                    Set<ServiceAccount> serviceAccounts,
+                                                    String networkName) {
     tags = tags ?: [] as Set
+    serviceAccounts = serviceAccounts ?: [] as Set
     securityGroups?.findResults { GoogleSecurityGroup securityGroup ->
       def accountAndNetworkMatch = securityGroup.accountName == account && securityGroup.network == networkName
-      boolean targetTagsEmpty = !securityGroup.targetTags
+      if (!accountAndNetworkMatch) {
+        return null
+      }
+
+      boolean hasTargetTags = securityGroup.targetTags
       def targetTagsInCommon = []
-      if (!targetTagsEmpty) {
+      if (hasTargetTags) {
         targetTagsInCommon = (securityGroup.targetTags).intersect(tags)
       }
 
-      accountAndNetworkMatch && (targetTagsEmpty || !targetTagsInCommon.empty) ? securityGroup.name : null
+      boolean hasTargetServiceAccounts = securityGroup.targetServiceAccounts
+      def targetServiceAccountsInCommon = []
+
+      serviceAccounts.each { serviceAccount ->
+        if (serviceAccount.email in securityGroup.targetServiceAccounts)
+        targetServiceAccountsInCommon.add(serviceAccount.email)
+      }
+
+      // Firewall rules can apply to all instances, in which case neither tags nor service accounts are present.
+      boolean isDefaultFirewallRule = !hasTargetTags && !hasTargetServiceAccounts
+
+      (isDefaultFirewallRule || targetTagsInCommon || targetServiceAccountsInCommon) ? securityGroup.name : null
     } ?: []
   }
 

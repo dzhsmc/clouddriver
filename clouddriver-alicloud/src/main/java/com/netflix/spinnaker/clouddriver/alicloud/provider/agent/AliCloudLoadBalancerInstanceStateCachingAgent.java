@@ -86,7 +86,7 @@ public class AliCloudLoadBalancerInstanceStateCachingAgent
       String loadBalancerId = String.valueOf(loadBalancerAttributes.get("loadBalancerId"));
       describeHealthStatusRequest.setLoadBalancerId(loadBalancerId);
       String regionId = String.valueOf(loadBalancerAttributes.get("regionId"));
-      if(loadBalancerAttributes.get("regionId")==null || regionId.equals("null")){
+      if (loadBalancerAttributes.get("regionId") == null || regionId.equals("null")) {
         continue;
       }
       describeHealthStatusRequest.setSysRegionId(regionId);

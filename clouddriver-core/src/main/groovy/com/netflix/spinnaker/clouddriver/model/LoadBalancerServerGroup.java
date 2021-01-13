@@ -16,12 +16,11 @@
 
 package com.netflix.spinnaker.clouddriver.model;
 
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Set;
 
 @Data
 @Builder
@@ -35,16 +34,4 @@ public class LoadBalancerServerGroup {
   Set<String> detachedInstances;
   Set<LoadBalancerInstance> instances;
   String cloudProvider;
-
-  public LoadBalancerServerGroup(String name,String account,String region,
-                                 Boolean isDisabled,Set<String> detachedInstances,Set<LoadBalancerInstance> instances) {
-    super();
-    this.name = name;
-    this.account = account;
-    this.region = region;
-    this.isDisabled = isDisabled;
-    this.detachedInstances = detachedInstances;
-    this.instances = instances;
-  }
-
 }

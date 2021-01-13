@@ -34,7 +34,7 @@ class AppengineConfigurationProperties {
     static final String metadataUrl = "http://metadata.google.internal/computeMetadata/v1"
 
     String serviceAccountEmail
-    String localRepositoryDirectory
+    String localRepositoryDirectory = "/var/tmp/clouddriver"
     String gitHttpsUsername
     String gitHttpsPassword
     String githubOAuthAccessToken
@@ -49,9 +49,9 @@ class AppengineConfigurationProperties {
     List<String> omitVersions
     Long cachingIntervalSeconds
 
-    void initialize(AppengineJobExecutor jobExecutor) {
+    void initialize(AppengineJobExecutor jobExecutor, String gcloudPath) {
       if (this.jsonPath) {
-        jobExecutor.runCommand(["gcloud", "auth", "activate-service-account", "--key-file", this.jsonPath])
+        jobExecutor.runCommand([gcloudPath, "auth", "activate-service-account", "--key-file", this.jsonPath])
 
         def accountJson = new JsonSlurper().parse(new File(this.jsonPath))
         this.project = this.project ?: accountJson["project_id"]
@@ -99,4 +99,5 @@ class AppengineConfigurationProperties {
   }
 
   List<ManagedAccount> accounts = []
+  String gcloudPath
 }

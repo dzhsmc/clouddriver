@@ -40,7 +40,7 @@ public class AliCloudInstanceProvider implements InstanceProvider<AliCloudInstan
 
   @Autowired
   public AliCloudInstanceProvider(
-    ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
+      ObjectMapper objectMapper, Cache cacheView, AliCloudProvider provider) {
     this.objectMapper = objectMapper;
     this.cacheView = cacheView;
     this.provider = provider;
@@ -66,20 +66,20 @@ public class AliCloudInstanceProvider implements InstanceProvider<AliCloudInstan
       m.put("type", provider.getDisplayName());
       m.put("healthClass", "platform");
       HealthState healthState =
-        HealthHelper.judgeInstanceHealthyState(allHealthyKeys, null, instanceId, cacheView);
+          HealthHelper.judgeInstanceHealthyState(allHealthyKeys, null, instanceId, cacheView);
       m.put("state", !flag ? HealthState.Down : healthState);
       health.add(m);
       String zone = (String) attributes.get("zoneId");
 
       AliCloudInstance instance =
-        new AliCloudInstance(
-          String.valueOf(id),
-          null,
-          zone,
-          null,
-          AliCloudProvider.ID,
-          (!flag ? HealthState.Down : healthState),
-          health);
+          new AliCloudInstance(
+              String.valueOf(id),
+              null,
+              zone,
+              null,
+              AliCloudProvider.ID,
+              (!flag ? HealthState.Down : healthState),
+              health);
       instance.setAttributes(attributes);
 
       return instance;

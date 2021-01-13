@@ -16,32 +16,48 @@
 
 package com.netflix.spinnaker.clouddriver.ecs.deploy.description;
 
-import com.amazonaws.services.cloudwatch.model.MetricAlarm;
+import com.amazonaws.services.ecs.model.PlacementConstraint;
 import com.amazonaws.services.ecs.model.PlacementStrategy;
 import com.netflix.spinnaker.clouddriver.model.ServerGroup;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
+import com.netflix.spinnaker.kork.artifacts.model.Artifact;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nullable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class CreateServerGroupDescription extends AbstractECSDescription {
   String ecsClusterName;
   String iamRole;
-  Integer containerPort;
-  String targetGroup;
+
+  /**
+   * @deprecated this field only allows for one container port to be specified. ECS supports the
+   *     ability to have multiple target groups and container ports to be mapped to a container.
+   *     <p>This field is deprecated in favour of [targetGroupMappings.containerPort]
+   */
+  @Deprecated Integer containerPort;
+
+  /**
+   * @deprecated this field only allows for one target group to be specified. ECS supports the
+   *     ability to have multiple target groups and container ports to be mapped to a container.
+   *     <p>This field is deprecated in favour of [targetGroupMappings.targetGroup]
+   */
+  @Deprecated String targetGroup;
+
   List<String> securityGroupNames;
 
   String portProtocol;
 
-  Integer computeUnits;
-  Integer reservedMemory;
+  @Nullable Integer computeUnits;
+  @Nullable Integer reservedMemory;
 
   Map<String, String> environmentVariables;
+  Map<String, String> tags;
 
-  String dockerImageAddress;
+  @Nullable String dockerImageAddress;
   String dockerImageCredentialsSecret;
 
   ServerGroup.Capacity capacity;
@@ -52,20 +68,38 @@ public class CreateServerGroupDescription extends AbstractECSDescription {
   Source source = new Source();
 
   List<PlacementStrategy> placementStrategySequence;
+  List<PlacementConstraint> placementConstraints;
   String networkMode;
   String subnetType;
   Boolean associatePublicIpAddress;
   Integer healthCheckGracePeriodSeconds;
 
   String launchType;
+  String platformVersion;
 
   String logDriver;
   Map<String, String> logOptions;
   Map<String, String> dockerLabels;
 
+  List<ServiceDiscoveryAssociation> serviceDiscoveryAssociations;
+
+  boolean useTaskDefinitionArtifact;
+  Artifact resolvedTaskDefinitionArtifact;
+  String taskDefinitionArtifactAccount;
+  Map<String, String> containerToImageMap;
+
+  /**
+   * @deprecated this field only allows for one container to be specified. ECS supports the ability
+   *     to have multiple target groups and container ports to be mapped to one or more containers.
+   *     <p>This field is deprecated in favour of [targetGroupMappings.containerName]
+   */
+  @Deprecated String loadBalancedContainer;
+
+  Set<TargetGroupProperties> targetGroupMappings;
+
   @Override
   public String getRegion() {
-    //CreateServerGroupDescription does not contain a region. Instead it has AvailabilityZones
+    // CreateServerGroupDescription does not contain a region. Instead it has AvailabilityZones
     return getAvailabilityZones().keySet().iterator().next();
   }
 
@@ -76,5 +110,29 @@ public class CreateServerGroupDescription extends AbstractECSDescription {
     String region;
     String asgName;
     Boolean useSourceCapacity;
+  }
+
+  @Data
+  @EqualsAndHashCode(callSuper = false)
+  public static class ServiceDiscoveryAssociation {
+    ServiceRegistry registry;
+    Integer containerPort;
+    String containerName;
+  }
+
+  @Data
+  @EqualsAndHashCode(callSuper = false)
+  public static class ServiceRegistry {
+    String arn;
+    String name;
+    String id;
+  }
+
+  @Data
+  @EqualsAndHashCode(callSuper = false)
+  public static class TargetGroupProperties {
+    String containerName;
+    Integer containerPort;
+    String targetGroup;
   }
 }

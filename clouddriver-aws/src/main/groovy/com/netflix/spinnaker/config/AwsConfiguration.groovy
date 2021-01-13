@@ -19,62 +19,44 @@ package com.netflix.spinnaker.config
 import com.amazonaws.retry.RetryPolicy.BackoffStrategy
 import com.amazonaws.retry.RetryPolicy.RetryCondition
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.netflix.awsobjectmapper.AmazonObjectMapper
+import com.netflix.awsobjectmapper.AmazonObjectMapperConfigurer
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.cats.agent.Agent
-import com.netflix.spinnaker.cats.provider.ProviderSynchronizerTypeWrapper
+import com.netflix.spinnaker.clouddriver.aws.AmazonCloudProvider
 import com.netflix.spinnaker.clouddriver.aws.AwsConfigurationProperties
 import com.netflix.spinnaker.clouddriver.aws.agent.CleanupAlarmsAgent
 import com.netflix.spinnaker.clouddriver.aws.agent.CleanupDetachedInstancesAgent
 import com.netflix.spinnaker.clouddriver.aws.agent.ReconcileClassicLinkSecurityGroupsAgent
-import com.netflix.spinnaker.clouddriver.aws.bastion.BastionConfig
 import com.netflix.spinnaker.clouddriver.aws.deploy.BlockDeviceConfig
-import com.netflix.spinnaker.clouddriver.aws.deploy.converters.AllowLaunchAtomicOperationConverter
 import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.BasicAmazonDeployHandler
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.DefaultMigrateClusterConfigurationStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.DefaultMigrateLoadBalancerStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.DefaultMigrateSecurityGroupStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.DefaultMigrateServerGroupStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.MigrateClusterConfigurationStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.MigrateLoadBalancerStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.MigrateSecurityGroupStrategy
-import com.netflix.spinnaker.clouddriver.aws.deploy.handlers.MigrateServerGroupStrategy
 import com.netflix.spinnaker.clouddriver.aws.deploy.ops.securitygroup.SecurityGroupLookupFactory
 import com.netflix.spinnaker.clouddriver.aws.deploy.scalingpolicy.DefaultScalingPolicyCopier
 import com.netflix.spinnaker.clouddriver.aws.deploy.scalingpolicy.ScalingPolicyCopier
 import com.netflix.spinnaker.clouddriver.aws.deploy.userdata.LocalFileUserDataProvider
 import com.netflix.spinnaker.clouddriver.aws.deploy.userdata.NullOpUserDataProvider
 import com.netflix.spinnaker.clouddriver.aws.deploy.userdata.UserDataProvider
-import com.netflix.spinnaker.clouddriver.aws.deploy.validators.BasicAmazonDeployDescriptionValidator
 import com.netflix.spinnaker.clouddriver.aws.event.AfterResizeEventHandler
 import com.netflix.spinnaker.clouddriver.aws.event.DefaultAfterResizeEventHandler
 import com.netflix.spinnaker.clouddriver.aws.model.AmazonBlockDevice
 import com.netflix.spinnaker.clouddriver.aws.model.AmazonServerGroup
 import com.netflix.spinnaker.clouddriver.aws.provider.AwsCleanupProvider
 import com.netflix.spinnaker.clouddriver.aws.provider.view.AmazonClusterProvider
-import com.netflix.spinnaker.clouddriver.aws.security.AWSProxy
-import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider
-import com.netflix.spinnaker.clouddriver.aws.security.AmazonCredentialsInitializer
-import com.netflix.spinnaker.clouddriver.aws.security.EddaTimeoutConfig
+import com.netflix.spinnaker.clouddriver.aws.security.*
 import com.netflix.spinnaker.clouddriver.aws.security.EddaTimeoutConfig.Builder
-import com.netflix.spinnaker.clouddriver.aws.security.NetflixAmazonCredentials
+import com.netflix.spinnaker.clouddriver.aws.services.IdGenerator
 import com.netflix.spinnaker.clouddriver.aws.services.RegionScopedProviderFactory
 import com.netflix.spinnaker.clouddriver.core.limits.ServiceLimitConfiguration
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsRepository
 import com.netflix.spinnaker.clouddriver.security.ProviderUtils
 import com.netflix.spinnaker.kork.aws.AwsComponents
-import org.springframework.beans.factory.config.ConfigurableBeanFactory
+import com.netflix.spinnaker.kork.aws.bastion.BastionConfig
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.DependsOn
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Scope
+import org.springframework.context.annotation.*
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -119,8 +101,9 @@ class AwsConfiguration {
   }
 
   @Bean
+  @Qualifier("amazonObjectMapper")
   ObjectMapper amazonObjectMapper() {
-    return new AmazonObjectMapper()
+    return new AmazonObjectMapperConfigurer().createConfigured()
   }
 
   @Bean
@@ -131,53 +114,14 @@ class AwsConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ScalingPolicyCopier)
-  DefaultScalingPolicyCopier defaultScalingPolicyCopier() {
-    new DefaultScalingPolicyCopier()
+  DefaultScalingPolicyCopier defaultScalingPolicyCopier(AmazonClientProvider amazonClientProvider, IdGenerator idGenerator) {
+    new DefaultScalingPolicyCopier(amazonClientProvider, idGenerator)
   }
 
   @Bean
   @ConditionalOnMissingBean(UserDataProvider)
   NullOpUserDataProvider nullOpUserDataProvider() {
     new NullOpUserDataProvider()
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  MigrateSecurityGroupStrategy migrateSecurityGroupStrategy(AwsConfigurationProperties awsConfigurationProperties, AmazonClientProvider amazonClientProvider) {
-    new DefaultMigrateSecurityGroupStrategy(amazonClientProvider, awsConfigurationProperties.migration.infrastructureApplications)
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  MigrateLoadBalancerStrategy migrateLoadBalancerStrategy(AmazonClientProvider amazonClientProvider,
-                                                          RegionScopedProviderFactory regionScopedProviderFactory,
-                                                          DeployDefaults deployDefaults) {
-    new DefaultMigrateLoadBalancerStrategy(amazonClientProvider, regionScopedProviderFactory, deployDefaults)
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  MigrateServerGroupStrategy migrateServerGroupStrategy(AmazonClientProvider amazonClientProvider,
-                                                        BasicAmazonDeployHandler basicAmazonDeployHandler,
-                                                        RegionScopedProviderFactory regionScopedProviderFactory,
-                                                        BasicAmazonDeployDescriptionValidator basicAmazonDeployDescriptionValidator,
-                                                        AllowLaunchAtomicOperationConverter allowLaunchAtomicOperationConverter,
-                                                        DeployDefaults deployDefaults) {
-    new DefaultMigrateServerGroupStrategy(amazonClientProvider, basicAmazonDeployHandler,
-      regionScopedProviderFactory, basicAmazonDeployDescriptionValidator, allowLaunchAtomicOperationConverter,
-      deployDefaults)
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  MigrateClusterConfigurationStrategy migrateClusterConfigurationStrategy(AmazonClientProvider amazonClientProvider,
-                                                                          RegionScopedProviderFactory regionScopedProviderFactory,
-                                                                          DeployDefaults deployDefaults) {
-    new DefaultMigrateClusterConfigurationStrategy(amazonClientProvider, regionScopedProviderFactory, deployDefaults)
   }
 
   @Bean
@@ -270,29 +214,13 @@ class AwsConfiguration {
     new SecurityGroupLookupFactory(amazonClientProvider, accountCredentialsRepository)
   }
 
-  @Bean
-  AwsCleanupProviderSynchronizerTypeWrapper awsCleanupProviderSynchronizerTypeWrapper() {
-    new AwsCleanupProviderSynchronizerTypeWrapper()
-  }
-
-  class AwsCleanupProviderSynchronizerTypeWrapper implements ProviderSynchronizerTypeWrapper {
-    @Override
-    Class getSynchronizerType() {
-      return AwsCleanupProviderSynchronizer
-    }
-  }
-
-  class AwsCleanupProviderSynchronizer {}
-
-  @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  @Bean
-  AwsCleanupProviderSynchronizer synchronizeAwsCleanupProvider(AwsConfigurationProperties awsConfigurationProperties,
-                                                               AwsCleanupProvider awsCleanupProvider,
-                                                               AmazonClientProvider amazonClientProvider,
-                                                               AccountCredentialsRepository accountCredentialsRepository,
-                                                               DeployDefaults deployDefaults) {
+  private static void synchronizeAwsCleanupProvider(AwsConfigurationProperties awsConfigurationProperties,
+                                                    AwsCleanupProvider awsCleanupProvider,
+                                                    AmazonClientProvider amazonClientProvider,
+                                                    AccountCredentialsRepository accountCredentialsRepository,
+                                                    DeployDefaults deployDefaults) {
     def scheduledAccounts = ProviderUtils.getScheduledAccounts(awsCleanupProvider)
-    Set<NetflixAmazonCredentials> allAccounts = ProviderUtils.buildThreadSafeSetOfAccounts(accountCredentialsRepository, NetflixAmazonCredentials)
+    Set<NetflixAmazonCredentials> allAccounts = ProviderUtils.buildThreadSafeSetOfAccounts(accountCredentialsRepository, NetflixAmazonCredentials, AmazonCloudProvider.ID)
 
     List<Agent> newlyAddedAgents = []
 
@@ -315,8 +243,6 @@ class AwsConfiguration {
       awsCleanupProvider.agents.add(new CleanupDetachedInstancesAgent(amazonClientProvider, accountCredentialsRepository))
     }
     awsCleanupProvider.agents.addAll(newlyAddedAgents)
-
-    new AwsCleanupProviderSynchronizer()
   }
 
   @Bean

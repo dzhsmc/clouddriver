@@ -16,9 +16,12 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v2;
 
+import javax.annotation.Nullable;
 import lombok.Data;
 
 @Data
 public class Service {
   private String label;
+
+  @Nullable private String extra;
 }

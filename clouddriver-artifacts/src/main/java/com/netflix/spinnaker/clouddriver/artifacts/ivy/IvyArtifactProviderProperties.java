@@ -16,15 +16,14 @@
 
 package com.netflix.spinnaker.clouddriver.artifacts.ivy;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 @ConfigurationProperties("artifacts.ivy")
-public class IvyArtifactProviderProperties {
+final class IvyArtifactProviderProperties {
   private boolean enabled;
   private List<IvyArtifactAccount> accounts = new ArrayList<>();
 }

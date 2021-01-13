@@ -16,15 +16,14 @@
 
 package com.netflix.spinnaker.clouddriver.artifacts.maven;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Data
 @ConfigurationProperties("artifacts.maven")
-public class MavenArtifactProviderProperties {
+final class MavenArtifactProviderProperties {
   private boolean enabled;
   private List<MavenArtifactAccount> accounts = new ArrayList<>();
 }

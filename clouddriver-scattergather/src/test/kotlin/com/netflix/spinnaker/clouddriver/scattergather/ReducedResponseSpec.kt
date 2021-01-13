@@ -19,15 +19,15 @@ import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.verify
+import java.io.ByteArrayOutputStream
+import java.io.PrintWriter
+import javax.servlet.http.HttpServletResponse
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
-import java.io.ByteArrayOutputStream
-import java.io.PrintWriter
-import javax.servlet.http.HttpServletResponse
 
 internal object ReducedResponseSpec : Spek({
 
@@ -55,7 +55,7 @@ internal object ReducedResponseSpec : Spek({
         verify(servletResponse).status = eq(200)
         verify(servletResponse).contentType = eq("application/json")
         verify(servletResponse).characterEncoding = eq("UTF-8")
-        verify(servletResponse).setContentLength(eq(reducedResponse.body!!.length ))
+        verify(servletResponse).setContentLength(eq(reducedResponse.body!!.length))
 
         expectThat(byteArrayOutputStream) {
           get { byteArrayOutputStream.toString() }.isEqualTo("Hello world!")

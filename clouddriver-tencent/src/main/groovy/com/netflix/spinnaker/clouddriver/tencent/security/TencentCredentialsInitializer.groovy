@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration
 
 @Slf4j
 @Configuration
-class TencentCredentialsInitializer implements CredentialsInitializerSynchronizable {
+class TencentCredentialsInitializer{
   @Bean
   List<TencentNamedAccountCredentials> tencentNamedAccountCredentials(
     TencentConfigurationProperties tencentConfigurationProperties,
@@ -35,10 +35,5 @@ class TencentCredentialsInitializer implements CredentialsInitializerSynchroniza
         log.error("Could not load account ${managedAccount.name} for Tencent.", e)
       }
     }
-  }
-
-  @Override
-  String getCredentialsSynchronizationBeanName() {
-    return "synchronizeTencentAccounts"
   }
 }

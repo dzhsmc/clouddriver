@@ -17,12 +17,11 @@
 package com.netflix.spinnaker.clouddriver.artifacts.ivy.settings;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import javax.annotation.Nullable;
 import lombok.Data;
 
-import javax.annotation.Nullable;
-
 @Data
-public class Credentials {
+final class Credentials {
   @JacksonXmlProperty(isAttribute = true)
   private String host;
 

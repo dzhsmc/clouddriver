@@ -23,9 +23,9 @@ public class UpsertAliCloudImageTagsAtomicOperation implements AtomicOperation<V
   private final ClientFactory clientFactory;
 
   public UpsertAliCloudImageTagsAtomicOperation(
-    UpsertAliCloudImageTagsDescription description,
-    ObjectMapper objectMapper,
-    ClientFactory clientFactory) {
+      UpsertAliCloudImageTagsDescription description,
+      ObjectMapper objectMapper,
+      ClientFactory clientFactory) {
     this.description = description;
     this.objectMapper = objectMapper;
     this.clientFactory = clientFactory;
@@ -34,10 +34,10 @@ public class UpsertAliCloudImageTagsAtomicOperation implements AtomicOperation<V
   @Override
   public Void operate(List priorOutputs) {
     IAcsClient client =
-      clientFactory.createClient(
-        description.getRegion(),
-        description.getCredentials().getAccessKeyId(),
-        description.getCredentials().getAccessSecretKey());
+        clientFactory.createClient(
+            description.getRegion(),
+            description.getCredentials().getAccessKeyId(),
+            description.getCredentials().getAccessSecretKey());
     DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest();
     describeImagesRequest.setSysRegionId(description.getRegion());
     describeImagesRequest.setImageName(description.getImageName());
@@ -52,17 +52,17 @@ public class UpsertAliCloudImageTagsAtomicOperation implements AtomicOperation<V
         tagResourcesRequest.setResourceType("image");
         List<TagResourcesRequest.Tag> tags = new ArrayList<>(description.getTags().size());
         description
-          .getTags()
-          .forEach(
-            (k, v) -> {
-              TagResourcesRequest.Tag tag = new TagResourcesRequest.Tag();
-              tag.setKey(k);
-              tag.setValue(v);
-              tags.add(tag);
-            });
+            .getTags()
+            .forEach(
+                (k, v) -> {
+                  TagResourcesRequest.Tag tag = new TagResourcesRequest.Tag();
+                  tag.setKey(k);
+                  tag.setValue(v);
+                  tags.add(tag);
+                });
         tagResourcesRequest.setTags(tags);
         client.getAcsResponse(tagResourcesRequest);
-      }else {
+      } else {
         throw new AliCloudException("The image not fond");
       }
     } catch (ServerException e) {

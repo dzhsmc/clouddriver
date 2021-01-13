@@ -18,30 +18,25 @@ package com.netflix.spinnaker.clouddriver.artifacts.ivy.settings;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.apache.ivy.plugins.resolver.URLResolver;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class UrlResolver extends Resolver<URLResolver> {
+final class UrlResolver extends Resolver<URLResolver> {
   @JacksonXmlProperty(isAttribute = true)
   @Nullable
   private Boolean m2compatible;
 
-  /**
-   * Defines a pattern for Ivy files, using the pattern attribute.
-   */
+  /** Defines a pattern for Ivy files, using the pattern attribute. */
   @JacksonXmlElementWrapper(useWrapping = false)
   @Nullable
   private List<Pattern> ivy;
 
-  /**
-   * Defines a pattern for artifacts, using the pattern attribute
-   */
+  /** Defines a pattern for artifacts, using the pattern attribute */
   @JacksonXmlElementWrapper(useWrapping = false)
   private List<Pattern> artifact;
 

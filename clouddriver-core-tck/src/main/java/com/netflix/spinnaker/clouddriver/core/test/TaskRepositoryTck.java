@@ -15,23 +15,22 @@
  */
 package com.netflix.spinnaker.clouddriver.core.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.netflix.spinnaker.clouddriver.data.task.Status;
 import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
-import org.apache.commons.lang.WordUtils;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.text.WordUtils;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-abstract public class TaskRepositoryTck<T extends TaskRepository> {
+public abstract class TaskRepositoryTck<T extends TaskRepository> {
 
   protected TaskRepository subject;
 
@@ -63,6 +62,7 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
     assertThat(t1.getStatus().isFailed()).isEqualTo(t2.getStatus().isFailed());
     assertThat(t1.getStatus().isCompleted()).isFalse();
     assertThat(t1.getStatus().isFailed()).isFalse();
+    assertThat(t1.getStatus().isRetryable()).isFalse();
   }
 
   @Test
@@ -74,6 +74,19 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
 
     assertThat(t2.getStatus().isCompleted()).isTrue();
     assertThat(t2.getStatus().isFailed()).isTrue();
+    assertThat(t2.getStatus().isRetryable()).isFalse();
+  }
+
+  @Test
+  public void testRetryableStatus() {
+    Task t1 = subject.create("TEST", "Test Status");
+    t1.fail(true);
+
+    Task t2 = subject.get(t1.getId());
+
+    assertThat(t2.getStatus().isCompleted()).isTrue();
+    assertThat(t2.getStatus().isFailed()).isTrue();
+    assertThat(t2.getStatus().isRetryable()).isTrue();
   }
 
   @Test
@@ -82,7 +95,7 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
     t1.updateStatus("Orchestration", "completed");
     t1.complete();
 
-    assert(t1.getStatus().isCompleted());
+    assert (t1.getStatus().isCompleted());
   }
 
   @Test
@@ -96,16 +109,10 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
 
     t1.complete();
 
-    assertThat(
-      subject.list().stream()
-        .map(Task::getId)
-        .collect(Collectors.toList())
-    ).doesNotContain(t1.getId());
-    assertThat(
-      subject.list().stream()
-        .map(Task::getId)
-        .collect(Collectors.toList())
-    ).contains(t2.getId());
+    assertThat(subject.list().stream().map(Task::getId).collect(Collectors.toList()))
+        .doesNotContain(t1.getId());
+    assertThat(subject.list().stream().map(Task::getId).collect(Collectors.toList()))
+        .contains(t2.getId());
   }
 
   @Test
@@ -135,10 +142,10 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
     t1.addResultObjects(Collections.singletonList(new TestObject("Object3", "value")));
 
     assertThat(
-      t1.getResultObjects().stream()
-        .map(o -> getField(o, "name"))
-        .collect(Collectors.toList())
-    ).containsSequence("Object0", "Object1", "Object2", "Object3");
+            t1.getResultObjects().stream()
+                .map(o -> getField(o, "name"))
+                .collect(Collectors.toList()))
+        .containsSequence("Object0", "Object1", "Object2", "Object3");
   }
 
   @Test
@@ -203,8 +210,11 @@ abstract public class TaskRepositoryTck<T extends TaskRepository> {
       return ((Map) object).get(fieldName);
     } else {
       try {
-        return object.getClass().getDeclaredMethod("get" + WordUtils.capitalize(fieldName)).invoke(object);
-      } catch (NoSuchMethodException|IllegalAccessException|InvocationTargetException e) {
+        return object
+            .getClass()
+            .getDeclaredMethod("get" + WordUtils.capitalize(fieldName))
+            .invoke(object);
+      } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
     }

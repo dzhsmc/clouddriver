@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import groovy.time.TimeCategory
 
-
 /*
 curl -X POST \
   http://localhost:7002/tencent/ops \
@@ -208,8 +207,8 @@ class TencentDeployHandler implements DeployHandler<TencentDeployDescription> {
             launchTimeCalendar.setTime(current_time)
             Calendar oldCalendar = Calendar.getInstance()
             oldCalendar.setTime(original_start_time)
-            launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE))
             launchTimeCalendar.set(Calendar.SECOND, oldCalendar.get(Calendar.SECOND))
+            launchTimeCalendar.set(Calendar.MINUTE, oldCalendar.get(Calendar.MINUTE))
             launchTimeCalendar.set(Calendar.HOUR_OF_DAY, oldCalendar.get(Calendar.HOUR_OF_DAY))
             if (launchTimeCalendar.getTime().before(current_time)) {
               launchTimeCalendar.add(Calendar.DATE, 1)

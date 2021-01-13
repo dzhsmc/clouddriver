@@ -1,0 +1,6 @@
+dependencies {
+  implementation project(":cats:cats-sql")
+  implementation project(":clouddriver-sql")
+
+  runtimeOnly "mysql:mysql-connector-java:8.0.12"
+}

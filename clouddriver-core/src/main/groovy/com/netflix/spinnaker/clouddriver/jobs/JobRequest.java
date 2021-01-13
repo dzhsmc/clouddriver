@@ -15,15 +15,52 @@
  */
 package com.netflix.spinnaker.clouddriver.jobs;
 
-import lombok.Getter;
-
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
+import lombok.Getter;
+import org.apache.commons.exec.CommandLine;
 
 @Getter
 public class JobRequest {
   private final List<String> tokenizedCommand;
+  private final CommandLine commandLine;
+  private final Map<String, String> environment;
+  private final InputStream inputStream;
 
   public JobRequest(List<String> tokenizedCommand) {
+    this(tokenizedCommand, System.getenv(), new ByteArrayInputStream(new byte[0]));
+  }
+
+  public JobRequest(List<String> tokenizedCommand, InputStream inputStream) {
+    this(tokenizedCommand, System.getenv(), inputStream);
+  }
+
+  public JobRequest(
+      List<String> tokenizedCommand, Map<String, String> environment, InputStream inputStream) {
     this.tokenizedCommand = tokenizedCommand;
+    this.commandLine = createCommandLine(tokenizedCommand);
+    this.environment = environment;
+    this.inputStream = inputStream;
+  }
+
+  private CommandLine createCommandLine(List<String> tokenizedCommand) {
+    if (tokenizedCommand == null || tokenizedCommand.size() == 0) {
+      throw new IllegalArgumentException("No tokenizedCommand specified.");
+    }
+
+    // Grab the first element as the command.
+    CommandLine commandLine = new CommandLine(tokenizedCommand.get(0));
+
+    int size = tokenizedCommand.size();
+    String[] arguments = tokenizedCommand.subList(1, size).toArray(new String[size - 1]);
+    commandLine.addArguments(arguments, false);
+    return commandLine;
+  }
+
+  @Override
+  public String toString() {
+    return String.join(" ", tokenizedCommand);
   }
 }

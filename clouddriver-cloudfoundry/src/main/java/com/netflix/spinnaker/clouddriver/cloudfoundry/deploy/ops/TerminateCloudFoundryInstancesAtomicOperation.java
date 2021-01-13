@@ -16,18 +16,17 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
+import static java.util.stream.Collectors.joining;
+
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryApiException;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryClient;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.TerminateCloudFoundryInstancesDescription;
 import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
-import lombok.RequiredArgsConstructor;
-
 import java.util.Arrays;
 import java.util.List;
-
-import static java.util.stream.Collectors.joining;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class TerminateCloudFoundryInstancesAtomicOperation implements AtomicOperation<Void> {
@@ -43,7 +42,6 @@ public class TerminateCloudFoundryInstancesAtomicOperation implements AtomicOper
     getTask().updateStatus(PHASE, "Terminating " + instanceDescription());
     final CloudFoundryClient client = description.getClient();
 
-    boolean oneOrMoreFailed = false;
     for (String instance : description.getInstanceIds()) {
       try {
         String serverGroupId = instance.substring(0, instance.lastIndexOf("-"));
@@ -51,22 +49,21 @@ public class TerminateCloudFoundryInstancesAtomicOperation implements AtomicOper
         client.getApplications().deleteAppInstance(serverGroupId, instanceIndex);
         getTask().updateStatus(PHASE, "Terminated " + instanceDescription());
       } catch (CloudFoundryApiException e) {
-        getTask().updateStatus(PHASE, "Failed to terminate '" + instance + "': " + e.getMessage());
-        oneOrMoreFailed = true;
+        throw new CloudFoundryApiException(
+            "Failed to terminate '" + instance + "': " + e.getMessage());
       }
-    }
-
-    if (oneOrMoreFailed) {
-      getTask().fail();
     }
 
     return null;
   }
 
   private String instanceDescription() {
-    return description.getInstanceIds().length == 1 ?
-      "application instance '" + description.getInstanceIds()[0] + "'" :
-      "application instances [" + Arrays.stream(description.getInstanceIds())
-        .map(id -> "'" + id + "'").collect(joining(", ")) + "]";
+    return description.getInstanceIds().length == 1
+        ? "application instance '" + description.getInstanceIds()[0] + "'"
+        : "application instances ["
+            + Arrays.stream(description.getInstanceIds())
+                .map(id -> "'" + id + "'")
+                .collect(joining(", "))
+            + "]";
   }
 }

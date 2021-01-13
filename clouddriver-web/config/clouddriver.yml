@@ -67,12 +67,12 @@ aws:
       deviceName: /dev/sdb
       size: 40
     instanceClassBlockDevices:
-    - instanceClass: m3
-      blockDevices:
-      - deviceName: /dev/sdb
-        virtualName: ephemeral0
-      - deviceName: /dev/sdc
-        virtualName: ephemeral1
+      - instanceClass: m3
+        blockDevices:
+          - deviceName: /dev/sdb
+            virtualName: ephemeral0
+          - deviceName: /dev/sdc
+            virtualName: ephemeral1
   defaultRegions:
     - name: us-east-1
   defaultKeyPairTemplate: '{{name}}-keypair'
@@ -95,30 +95,30 @@ azure:
       defaultResourceGroup: ${AZURE_DEFAULT_RESOURCE_GROUP:"SpinnakerDefault"}
       defaultKeyVault: ${AZURE_DEFAULT_KEYVAULT}
       vmImages:
-      - publisher: "MicrosoftWindowsServer"
-        offer: "WindowsServer"
-        sku: "2012-R2-Datacenter"
-        version: "4.0.20151214"
-      - publisher: "Canonical"
-        offer: "UbuntuServer"
-        sku: "14.04.5-LTS"
-        version: "14.04.201612130"
-      - publisher: "credativ"
-        offer: "Debian"
-        sku: "8"
-        version: "8.0.201602010"
-      - publisher: "OpenLogic"
-        offer: "CentOS"
-        sku: "7.1"
-        version: "7.1.20150731"
-      - publisher: "SUSE"
-        offer: "openSUSE-Leap"
-        sku: "42.1"
-        version: "2016.01.14"
-      - publisher: "SUSE"
-        offer: "SLES"
-        sku: "12-SP1"
-        version: "2015.12.15"
+        - publisher: "MicrosoftWindowsServer"
+          offer: "WindowsServer"
+          sku: "2012-R2-Datacenter"
+          version: "4.0.20151214"
+        - publisher: "Canonical"
+          offer: "UbuntuServer"
+          sku: "14.04.5-LTS"
+          version: "14.04.201612130"
+        - publisher: "credativ"
+          offer: "Debian"
+          sku: "8"
+          version: "8.0.201602010"
+        - publisher: "OpenLogic"
+          offer: "CentOS"
+          sku: "7.1"
+          version: "7.1.20150731"
+        - publisher: "SUSE"
+          offer: "openSUSE-Leap"
+          sku: "42.1"
+          version: "2016.01.14"
+        - publisher: "SUSE"
+          offer: "SLES"
+          sku: "12-SP1"
+          version: "2015.12.15"
   # Example how to set the Azure storage connection string related entries for retrieving the list of available custom VM images,
   #  where "scs" represents the Azure Storage connection string and "blobDir" is the relative path to the custom images container
   #
@@ -138,15 +138,15 @@ appengine:
 google:
   enabled: false
   baseImageProjects:
-  - centos-cloud
-  - coreos-cloud
-  - cos-cloud
-  - debian-cloud
-  - opensuse-cloud
-  - rhel-cloud
-  - suse-cloud
-  - ubuntu-os-cloud
-  - windows-cloud
+    - centos-cloud
+    - coreos-cloud
+    - cos-cloud
+    - debian-cloud
+    - opensuse-cloud
+    - rhel-cloud
+    - suse-cloud
+    - ubuntu-os-cloud
+    - windows-cloud
   accounts:
     - name: my-gcp-account
       project: my-gcp-project
@@ -157,87 +157,87 @@ google:
         - my-gcp-image-project
   defaults:
     fallbackInstanceTypeDisks:
-    - type: pd-ssd
-      sizeGb: 10
+      - type: pd-ssd
+        sizeGb: 10
     instanceTypeDisks:
-    - instanceType: n1-standard-1
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-standard-2
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-standard-4
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-standard-8
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-standard-16
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-standard-32
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: f1-micro
-      supportsLocalSSD: false
-      disks:
-      - type: pd-standard
-        sizeGb: 10
-    - instanceType: g1-small
-      supportsLocalSSD: false
-      disks:
-      - type: pd-standard
-        sizeGb: 10
-    - instanceType: n1-highmem-2
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highmem-4
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highmem-8
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highmem-16
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highmem-32
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highcpu-2
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highcpu-4
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highcpu-8
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highcpu-16
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: n1-highcpu-32
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
-    - instanceType: default
-      disks:
-      - type: pd-ssd
-        sizeGb: 10
+      - instanceType: n1-standard-1
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-standard-2
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-standard-4
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-standard-8
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-standard-16
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-standard-32
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: f1-micro
+        supportsLocalSSD: false
+        disks:
+          - type: pd-standard
+            sizeGb: 10
+      - instanceType: g1-small
+        supportsLocalSSD: false
+        disks:
+          - type: pd-standard
+            sizeGb: 10
+      - instanceType: n1-highmem-2
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highmem-4
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highmem-8
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highmem-16
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highmem-32
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highcpu-2
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highcpu-4
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highcpu-8
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highcpu-16
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: n1-highcpu-32
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
+      - instanceType: default
+        disks:
+          - type: pd-ssd
+            sizeGb: 10
 
 openstack:
   enabled: ${OS_ENABLED:false}
@@ -297,7 +297,7 @@ tencent:
       secretId: ${TENCENTCLOUD_SECRET_ID}
       secretKey: ${TENCENTCLOUD_SECRET_KEY}
       regions: ["ap-guangzhou","ap-shanghai"]
-      
+
 
 spring:
   jackson:
@@ -318,13 +318,13 @@ operations.security:
 spring:
   profiles: prod
 
-# example https configuration for client auth to services:
-#default:
-  # legacyServerPort is a non-ssl listener when the main listener has SSL enabled
-  #legacyServerPort: 8501
+    # example https configuration for client auth to services:
+    #default:
+    # legacyServerPort is a non-ssl listener when the main listener has SSL enabled
+    #legacyServerPort: 8501
 
-#server:
-  #ssl:
+    #server:
+    #ssl:
     # enabled: true
     # keyStore: clouddriver-keystore.p12
     # keyStoreType: PKCS12
@@ -334,11 +334,11 @@ spring:
     # trustStorePassword: changeme
     # clientAuth: need
 
-#aws:
-  # example configuration for managing multiple accounts
-  # role in managed account to assume:
-  #defaultAssumeRole: role/myrole
-  #accounts:
+    #aws:
+    # example configuration for managing multiple accounts
+    # role in managed account to assume:
+    #defaultAssumeRole: role/myrole
+    #accounts:
     # - name: account-display-name
     #   defaultKeyPair: key-pair
     #   edda: http://edda.{{region}}.host.net:7001
@@ -346,7 +346,7 @@ spring:
     #   accountId: 123456789012
     #   regions: #override default regions
     #     - name: us-east-1
-    #     - name: ap-northeast-1
+  #     - name: ap-northeast-1
 
 ---
 

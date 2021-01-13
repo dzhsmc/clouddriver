@@ -16,12 +16,13 @@
 package com.netflix.spinnaker.clouddriver.aws.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class AmazonCloudFormationStack implements CloudFormationStack {
+public class AmazonCloudFormationStack {
   final String type = "aws";
   private String stackId;
   private Map<String, String> tags;
@@ -32,54 +33,49 @@ public class AmazonCloudFormationStack implements CloudFormationStack {
   private String stackStatusReason;
   private String accountName;
   private String accountId;
+  private List<AmazonCloudFormationChangeSet> changeSets;
   private Date creationTime;
 
-  @Override
   public String getStackId() {
     return stackId;
   }
 
-  @Override
   public Map<String, String> getTags() {
     return tags;
   }
 
-  @Override
   public Map<String, String> getOutputs() {
     return outputs;
   }
 
-  @Override
   public String getStackName() {
     return stackName;
   }
 
-  @Override
   public String getRegion() {
     return region;
   }
 
-  @Override
   public String getAccountName() {
     return accountName;
   }
 
-  @Override
   public String getAccountId() {
     return accountId;
   }
 
-  @Override
   public String getStackStatus() {
     return stackStatus;
   }
 
-  @Override
   public String getStackStatusReason() {
     return stackStatusReason;
   }
 
-  @Override
+  public List<AmazonCloudFormationChangeSet> getChangeSets() {
+    return (changeSets == null) ? null : new ArrayList<>(changeSets);
+  }
+
   public Date getCreationTime() {
     return creationTime;
   }

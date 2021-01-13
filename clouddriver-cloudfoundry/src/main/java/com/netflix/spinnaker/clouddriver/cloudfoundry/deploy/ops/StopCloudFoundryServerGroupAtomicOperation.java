@@ -16,6 +16,9 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops;
 
+import static com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops.CloudFoundryOperationUtils.describeProcessState;
+
+import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryApiException;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.CloudFoundryClient;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3.ProcessStats;
 import com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.description.StopCloudFoundryServerGroupDescription;
@@ -23,11 +26,8 @@ import com.netflix.spinnaker.clouddriver.data.task.Task;
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository;
 import com.netflix.spinnaker.clouddriver.helpers.OperationPoller;
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation;
-import lombok.RequiredArgsConstructor;
-
 import java.util.List;
-
-import static com.netflix.spinnaker.clouddriver.cloudfoundry.deploy.ops.CloudFoundryOperationUtils.describeProcessState;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class StopCloudFoundryServerGroupAtomicOperation implements AtomicOperation<Void> {
@@ -46,15 +46,23 @@ public class StopCloudFoundryServerGroupAtomicOperation implements AtomicOperati
 
     client.getApplications().stopApplication(description.getServerGroupId());
 
-    ProcessStats.State state = operationPoller.waitForOperation(
-      () -> client.getApplications().getProcessState(description.getServerGroupId()),
-      inProgressState -> inProgressState != ProcessStats.State.STARTING,
-      null, getTask(), description.getServerGroupName(), PHASE);
+    ProcessStats.State state =
+        operationPoller.waitForOperation(
+            () -> client.getApplications().getProcessState(description.getServerGroupId()),
+            inProgressState ->
+                inProgressState != ProcessStats.State.STARTING
+                    && inProgressState != ProcessStats.State.RUNNING,
+            null,
+            getTask(),
+            description.getServerGroupName(),
+            PHASE);
 
     if (state != ProcessStats.State.DOWN) {
-      getTask().updateStatus(PHASE, "Failed to stop '" + description.getServerGroupName() + "' which instead " + describeProcessState(state));
-      getTask().fail();
-      return null;
+      throw new CloudFoundryApiException(
+          "Failed to stop '"
+              + description.getServerGroupName()
+              + "' which instead "
+              + describeProcessState(state));
     }
 
     getTask().updateStatus(PHASE, "Stopped '" + description.getServerGroupName() + "'");

@@ -16,10 +16,9 @@
 
 package com.netflix.spinnaker.clouddriver.cloudfoundry.client.model.v3;
 
-import lombok.Data;
-
 import java.time.ZonedDateTime;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class Application {
@@ -27,5 +26,6 @@ public class Application {
   private String guid;
   private String state;
   private ZonedDateTime createdAt;
+  private ZonedDateTime updatedAt;
   private Map<String, Link> links;
 }
