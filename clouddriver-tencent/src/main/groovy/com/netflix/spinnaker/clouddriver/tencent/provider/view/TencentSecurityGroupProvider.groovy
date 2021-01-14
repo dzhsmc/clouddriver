@@ -71,6 +71,13 @@ class TencentSecurityGroupProvider implements SecurityGroupProvider<TencentSecur
     getAllMatchingKeyPattern(Keys.getSecurityGroupKey('*', securityGroupName, account, region), true)[0]
   }
 
+  @Override
+  TencentSecurityGroup getById(String account, String region, String id, String vpcId) {
+    //TO-DO
+    log.info("Enter TencentSecurityGroupProvider get,account=${account},region=${region},id=${id}")
+    return get(account,region,id,vpcId)
+  }
+
   Set<TencentSecurityGroup> getAllMatchingKeyPattern(String pattern, boolean includeRules) {
     log.info("Enter getAllMatchingKeyPattern pattern = ${pattern}")
     loadResults(includeRules, cacheView.filterIdentifiers(SECURITY_GROUPS.ns, pattern))
