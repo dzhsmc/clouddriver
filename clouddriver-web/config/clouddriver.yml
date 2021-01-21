@@ -290,7 +290,7 @@ oracle:
   enabled: ${ORACLE_ENABLED:false}
 
 tencent:
-  enabled: true
+  enabled: false
   accounts:
     - name: my-tencent-account
       project: my-tencent-project

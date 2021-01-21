@@ -1,0 +1,8 @@
+package com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description
+
+import com.netflix.spinnaker.clouddriver.security.resources.CredentialsNameable
+import com.netflix.spinnaker.clouddriver.huaweicloud.security.HuaweiCloudNamedAccountCredentials
+
+class AbstractHuaweiCloudCredentialsDescription implements CredentialsNameable {
+  HuaweiCloudNamedAccountCredentials credentials
+}
