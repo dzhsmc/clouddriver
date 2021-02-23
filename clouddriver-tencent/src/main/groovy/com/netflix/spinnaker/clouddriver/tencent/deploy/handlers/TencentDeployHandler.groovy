@@ -17,6 +17,7 @@ import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import groovy.time.TimeCategory
+import java.text.SimpleDateFormat
 
 /*
 curl -X POST \
@@ -190,9 +191,10 @@ class TencentDeployHandler implements DeployHandler<TencentDeployDescription> {
 
     // copy all scheduled actions
     def scheduledActions = autoScalingClient.getScheduledAction(sourceAsgId)
+    SimpleDateFormat sdf_draft = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'+08:00'")
     for (scheduledAction in scheduledActions) {
       try {
-        def original_start_time = Date.parse("yyyy-MM-dd'T'HH:mm:ss'+08:00'", scheduledAction.startTime)
+        def original_start_time = sdf_draft.parse(scheduledAction.startTime)
         def current_time = new Date()
         def new_start_time
 
@@ -228,7 +230,7 @@ class TencentDeployHandler implements DeployHandler<TencentDeployDescription> {
           it.maxSize = scheduledAction.maxSize
           it.minSize = scheduledAction.minSize
           it.desiredCapacity = scheduledAction.desiredCapacity
-          it.startTime = new_start_time.format("yyyy-MM-dd'T'HH:mm:ss'+08:00'")
+          it.startTime = sdf_draft.format(new_start_time)
           it.endTime = scheduledAction.endTime
           it.recurrence = scheduledAction.recurrence
           it

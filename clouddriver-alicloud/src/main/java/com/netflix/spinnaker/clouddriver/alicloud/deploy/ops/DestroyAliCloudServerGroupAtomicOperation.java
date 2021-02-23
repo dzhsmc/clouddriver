@@ -70,6 +70,9 @@ public class DestroyAliCloudServerGroupAtomicOperation implements AtomicOperatio
     DescribeScalingGroupsResponse describeScalingGroupsResponse;
     try {
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
+      if(describeScalingGroupsResponse.getTotalCount()>3){
+        throw new AliCloudException("Alicloud search interface, Destroy "+describeScalingGroupsResponse.getTotalCount()+" Scaling Groups");
+      }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
         DeleteScalingGroupRequest deleteScalingGroupRequest = new DeleteScalingGroupRequest();
         deleteScalingGroupRequest.setScalingGroupId(scalingGroup.getScalingGroupId());

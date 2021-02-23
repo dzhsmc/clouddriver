@@ -68,6 +68,9 @@ public class DisableAliCloudServerGroupAtomicOperation implements AtomicOperatio
     DescribeScalingGroupsResponse describeScalingGroupsResponse;
     try {
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
+      if(describeScalingGroupsResponse.getTotalCount()>3){
+        throw new AliCloudException("Alicloud search interface, Disable "+describeScalingGroupsResponse.getTotalCount()+" Scaling Groups");
+      }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
         if ("Active".equals(scalingGroup.getLifecycleState())) {
           Integer maxSize = scalingGroup.getMaxSize();

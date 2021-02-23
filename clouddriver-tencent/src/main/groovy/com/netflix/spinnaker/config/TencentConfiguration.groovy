@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @ConditionalOnProperty('tencent.enabled')
 @ComponentScan(["com.netflix.spinnaker.clouddriver.tencent"])
 @Import([ TencentCredentialsInitializer ])
-class TencentConfiguration {
+  class TencentConfiguration {
   @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   @Bean
   @ConfigurationProperties("tencent")

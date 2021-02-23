@@ -23,7 +23,7 @@ import com.netflix.spinnaker.clouddriver.azure.resources.servergroup.ops.Disable
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperations
 import com.netflix.spinnaker.clouddriver.security.AbstractAtomicOperationsCredentialsSupport
-import groovy.util.logging.Slf4j
+import .util.logging.Slf4j
 import org.springframework.stereotype.Component
 
 @Slf4j
