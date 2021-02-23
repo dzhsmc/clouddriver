@@ -62,8 +62,11 @@ public class ResizeAliCloudServerGroupAtomicOperation implements AtomicOperation
     DescribeScalingGroupsResponse describeScalingGroupsResponse;
     try {
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
-      if(describeScalingGroupsResponse.getTotalCount()>3){
-        throw new AliCloudException("Alicloud search interface, Resize "+describeScalingGroupsResponse.getTotalCount()+" Scaling Groups");
+      if (describeScalingGroupsResponse.getTotalCount() > 3) {
+        throw new AliCloudException(
+            "Alicloud search interface, Resize "
+                + describeScalingGroupsResponse.getTotalCount()
+                + " Scaling Groups");
       }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
         ModifyScalingGroupRequest modifyScalingGroupRequest = new ModifyScalingGroupRequest();
