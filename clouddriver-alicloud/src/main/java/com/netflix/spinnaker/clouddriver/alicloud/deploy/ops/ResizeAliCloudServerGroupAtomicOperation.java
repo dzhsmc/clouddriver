@@ -69,6 +69,10 @@ public class ResizeAliCloudServerGroupAtomicOperation implements AtomicOperation
                 + " Scaling Groups");
       }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
+        if (!AliConditionMatchUtils.match(
+            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup)) {
+          continue;
+        }
         ModifyScalingGroupRequest modifyScalingGroupRequest = new ModifyScalingGroupRequest();
         modifyScalingGroupRequest.setScalingGroupId(scalingGroup.getScalingGroupId());
         LinkedHashMap<String, Integer> capacity = description.getCapacity();

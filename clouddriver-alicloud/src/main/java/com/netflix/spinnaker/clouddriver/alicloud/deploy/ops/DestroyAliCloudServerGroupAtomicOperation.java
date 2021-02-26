@@ -77,6 +77,10 @@ public class DestroyAliCloudServerGroupAtomicOperation implements AtomicOperatio
                 + " Scaling Groups");
       }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
+        if (!AliConditionMatchUtils.match(
+            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup)) {
+          continue;
+        }
         DeleteScalingGroupRequest deleteScalingGroupRequest = new DeleteScalingGroupRequest();
         deleteScalingGroupRequest.setScalingGroupId(scalingGroup.getScalingGroupId());
         deleteScalingGroupRequest.setForceDelete(true);

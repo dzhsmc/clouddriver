@@ -66,6 +66,10 @@ public class EnableAliCloudServerGroupAtomicOperation implements AtomicOperation
     try {
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
+        if (!AliConditionMatchUtils.match(
+            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup)) {
+          continue;
+        }
         if ("Inactive".equals(scalingGroup.getLifecycleState())) {
           DescribeScalingConfigurationsRequest configurationsRequest =
               new DescribeScalingConfigurationsRequest();

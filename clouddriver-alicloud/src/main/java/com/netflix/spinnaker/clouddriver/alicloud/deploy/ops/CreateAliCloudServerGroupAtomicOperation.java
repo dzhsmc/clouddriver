@@ -33,6 +33,7 @@ import groovy.util.logging.Slf4j;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,11 +176,22 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
                 description.getCredentials().getAccessSecretKey());
 
         describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
-        if (describeScalingGroupsResponse.getScalingGroups().size() == 0) {
+        List<DescribeScalingGroupsResponse.ScalingGroup> scalingGroups =
+            describeScalingGroupsResponse.getScalingGroups();
+        if (CollectionUtils.isEmpty(scalingGroups)) {
           throw new AliCloudException("Old server group is does not exist");
         }
-        DescribeScalingGroupsResponse.ScalingGroup scalingGroup =
-            describeScalingGroupsResponse.getScalingGroups().get(0);
+        scalingGroups =
+            scalingGroups.stream()
+                .filter(
+                    scalingGroup ->
+                        AliConditionMatchUtils.match(
+                            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup))
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(scalingGroups)) {
+          throw new AliCloudException("Old server group is does not exist");
+        }
+        DescribeScalingGroupsResponse.ScalingGroup scalingGroup = scalingGroups.get(0);
         if (scalingGroup.getMaxSize() != null) {
           request.setMaxSize(scalingGroup.getMaxSize());
         }
