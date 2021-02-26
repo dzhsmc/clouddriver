@@ -75,6 +75,10 @@ public class DisableAliCloudServerGroupAtomicOperation implements AtomicOperatio
                 + " Scaling Groups");
       }
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
+        if (!AliConditionMatchUtils.match(
+            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup)) {
+          continue;
+        }
         if ("Active".equals(scalingGroup.getLifecycleState())) {
           Integer maxSize = scalingGroup.getMaxSize();
           Integer minSize = scalingGroup.getMinSize();

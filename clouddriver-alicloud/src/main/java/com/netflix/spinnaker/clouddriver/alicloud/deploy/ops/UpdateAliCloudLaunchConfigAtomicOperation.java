@@ -68,6 +68,10 @@ public class UpdateAliCloudLaunchConfigAtomicOperation implements AtomicOperatio
     try {
       describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
       for (ScalingGroup scalingGroup : describeScalingGroupsResponse.getScalingGroups()) {
+        if (!AliConditionMatchUtils.match(
+            describeScalingGroupsRequest.getScalingGroupName(), scalingGroup)) {
+          continue;
+        }
         String activeScalingConfigurationId = scalingGroup.getActiveScalingConfigurationId();
         ModifyScalingConfigurationRequest configurationRequest =
             objectMapper.convertValue(description, ModifyScalingConfigurationRequest.class);

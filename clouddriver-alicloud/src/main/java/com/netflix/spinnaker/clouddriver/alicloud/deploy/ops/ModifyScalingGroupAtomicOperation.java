@@ -70,6 +70,10 @@ public class ModifyScalingGroupAtomicOperation implements AtomicOperation<Void> 
       try {
         describeScalingGroupsResponse = client.getAcsResponse(describeScalingGroupsRequest);
         for (ScalingGroup scaling : describeScalingGroupsResponse.getScalingGroups()) {
+          if (!AliConditionMatchUtils.match(
+              describeScalingGroupsRequest.getScalingGroupName(), scaling)) {
+            continue;
+          }
           ModifyScalingGroupRequest modifyScalingGroupRequest =
               objectMapper.convertValue(description, ModifyScalingGroupRequest.class);
           modifyScalingGroupRequest.setScalingGroupId(scaling.getScalingGroupId());

@@ -38,9 +38,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 @Slf4j
 public class CopyAliCloudServerGroupAtomicOperation implements AtomicOperation<DeploymentResult> {
@@ -93,10 +95,20 @@ public class CopyAliCloudServerGroupAtomicOperation implements AtomicOperation<D
     DescribeScalingGroupsResponse response;
     try {
       response = client.getAcsResponse(request);
-      if (response.getScalingGroups().size() == 0) {
+      List<ScalingGroup> scalingGroups = response.getScalingGroups();
+      if (CollectionUtils.isEmpty(scalingGroups)) {
         throw new AliCloudException("Old server group is does not exist");
       }
-      ScalingGroup scalingGroup = response.getScalingGroups().get(0);
+      scalingGroups =
+          scalingGroups.stream()
+              .filter(
+                  scalingGroup ->
+                      AliConditionMatchUtils.match(request.getScalingGroupName(), scalingGroup))
+              .collect(Collectors.toList());
+      if (CollectionUtils.isEmpty(scalingGroups)) {
+        throw new AliCloudException("Old server group is does not exist");
+      }
+      ScalingGroup scalingGroup = scalingGroups.get(0);
 
       CreateScalingGroupRequest createScalingGroupRequest =
           buildScalingGroupData(description, scalingGroup);
