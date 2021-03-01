@@ -403,31 +403,6 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
         }
       }
 
-      // lifecycle hooks
-      DescribeLifecycleHooksRequest describeLifecycleHooksRequest =
-          new DescribeLifecycleHooksRequest();
-      describeLifecycleHooksRequest.setScalingGroupId(sourceScalingGroupId);
-      describeLifecycleHooksRequest.setPageSize(pageSize);
-      int hooksPageNumber = 1;
-      describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
-      DescribeLifecycleHooksResponse describeLifecycleHooksResponse =
-          client.getAcsResponse(describeLifecycleHooksRequest);
-
-      while (describeLifecycleHooksResponse != null
-          && !CollectionUtils.isEmpty(describeLifecycleHooksResponse.getLifecycleHooks())) {
-        for (DescribeLifecycleHooksResponse.LifecycleHook lifecycleHook :
-            describeLifecycleHooksResponse.getLifecycleHooks()) {
-          CreateLifecycleHookRequest createLifecycleHookRequest =
-              objectMapper.convertValue(lifecycleHook, CreateLifecycleHookRequest.class);
-          createLifecycleHookRequest.setScalingGroupId(destScalingGroupId);
-          CreateLifecycleHookResponse createLifecycleHookResponse =
-              client.getAcsResponse(createLifecycleHookRequest);
-        }
-        hooksPageNumber = hooksPageNumber + 1;
-        describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
-        describeLifecycleHooksResponse = client.getAcsResponse(describeLifecycleHooksRequest);
-      }
-
       // alarm
       DescribeAlarmsRequest describeAlarmsRequest = new DescribeAlarmsRequest();
       describeAlarmsRequest.setSysRegionId(region);
@@ -477,6 +452,38 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
         alarmPageNumber = alarmPageNumber + 1;
         describeAlarmsRequest.setPageNumber(alarmPageNumber);
         describeAlarmsResponse = client.getAcsResponse(describeAlarmsRequest);
+      }
+
+      // lifecycle hooks
+      DescribeLifecycleHooksRequest describeLifecycleHooksRequest =
+          new DescribeLifecycleHooksRequest();
+      describeLifecycleHooksRequest.setScalingGroupId(sourceScalingGroupId);
+      describeLifecycleHooksRequest.setPageSize(pageSize);
+      int hooksPageNumber = 1;
+      describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
+      DescribeLifecycleHooksResponse describeLifecycleHooksResponse =
+          client.getAcsResponse(describeLifecycleHooksRequest);
+
+      while (describeLifecycleHooksResponse != null
+          && !CollectionUtils.isEmpty(describeLifecycleHooksResponse.getLifecycleHooks())) {
+        for (DescribeLifecycleHooksResponse.LifecycleHook lifecycleHook :
+            describeLifecycleHooksResponse.getLifecycleHooks()) {
+          CreateLifecycleHookRequest createLifecycleHookRequest = new CreateLifecycleHookRequest();
+          createLifecycleHookRequest.setScalingGroupId(lifecycleHook.getScalingGroupId());
+          createLifecycleHookRequest.setLifecycleHookName(lifecycleHook.getLifecycleHookName());
+          createLifecycleHookRequest.setDefaultResult(lifecycleHook.getDefaultResult());
+          createLifecycleHookRequest.setHeartbeatTimeout(lifecycleHook.getHeartbeatTimeout());
+          createLifecycleHookRequest.setLifecycleTransition(lifecycleHook.getLifecycleTransition());
+          //          CreateLifecycleHookRequest createLifecycleHookRequest =
+          //              objectMapper.convertValue(lifecycleHook,
+          // CreateLifecycleHookRequest.class);
+          createLifecycleHookRequest.setScalingGroupId(destScalingGroupId);
+          CreateLifecycleHookResponse createLifecycleHookResponse =
+              client.getAcsResponse(createLifecycleHookRequest);
+        }
+        hooksPageNumber = hooksPageNumber + 1;
+        describeLifecycleHooksRequest.setPageNumber(hooksPageNumber);
+        describeLifecycleHooksResponse = client.getAcsResponse(describeLifecycleHooksRequest);
       }
 
     } catch (Exception e) {
