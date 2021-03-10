@@ -99,6 +99,7 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
     if (description.copySourceScalingPoliciesAndActions) {
       copyScalingPolicy(description, deploymentResult)
       copyNotification(description, deploymentResult)  // copy notification by the way
+      copyLifeCycleHook(description, deploymentResult)
     }
     return deploymentResult
   }
@@ -136,6 +137,43 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
       } catch (HuaweiCloudOperationException e) {
         // something bad happened during creation, log the error and continue
         log.warn "create notification error $e"
+      }
+    }
+  }
+
+  private def copyLifeCycleHook(HuaweiCloudDeployDescription description, DeploymentResult deployResult) {
+    task.updateStatus BASE_PHASE, "Enter copyLifeCycleHook."
+    String sourceServerGroupName = description?.source?.serverGroupName
+    String sourceRegion = description?.source?.region
+    String accountName = description?.accountName
+    def sourceServerGroup = huaweicloudClusterProvider.getServerGroup(accountName, sourceRegion, sourceServerGroupName)
+
+    if (!sourceServerGroup) {
+      log.warn("source server group not found, account $accountName, region $sourceRegion, source sg name $sourceServerGroupName")
+      return
+    }
+
+    String sourceAsgId = sourceServerGroup.asg.autoScalingGroupId
+
+    task.updateStatus BASE_PHASE, "Initializing copy lifecyclehook from $sourceAsgId."
+
+    AutoScalingClient autoScalingClient = new AutoScalingClient(
+      description.credentials.credentials.accessKeyId,
+      description.credentials.credentials.accessSecretKey,
+      sourceRegion
+    )
+
+    String newServerGroupName = deployResult.serverGroupNameByRegion[sourceRegion]
+    def newAsg = autoScalingClient.getAutoScalingGroupsByName(newServerGroupName)[0]
+    String newAsgId = newAsg.getScalingGroupId()
+
+    def hooks = autoScalingClient.getLifeCycleHook(sourceAsgId)
+    for (hook in hooks) {
+      try {
+        autoScalingClient.createLifeCycleHook(newAsgId, hook)
+      } catch (HuaweiCloudOperationException e) {
+        // something bad happened during creation, log the error and continue
+        log.warn "create hook error $e"
       }
     }
   }

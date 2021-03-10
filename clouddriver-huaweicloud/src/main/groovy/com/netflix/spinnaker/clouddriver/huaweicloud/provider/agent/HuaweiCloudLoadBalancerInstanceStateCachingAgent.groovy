@@ -126,7 +126,7 @@ class HuaweiCloudLoadBalancerInstanceStateCachingAgent implements CachingAgent, 
           if (fixedIps.size() > 0) {
             def fixedIp = fixedIps[0]
             if (fixedIp.getIpAddress() == memberHealth.getAddress() &&
-              fixedIp.getSubnetId() == memberHealth.getSubnetId()) {
+              fixedIp.getSubnetId() == memberHealth.getSubnetCidrId()) {
               return true
             }
           }

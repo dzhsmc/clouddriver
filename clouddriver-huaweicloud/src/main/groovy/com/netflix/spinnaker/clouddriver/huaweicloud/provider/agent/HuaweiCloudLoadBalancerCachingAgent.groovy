@@ -29,7 +29,6 @@ import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudBasicResou
 import com.netflix.spinnaker.moniker.Moniker
 import com.netflix.spinnaker.moniker.Namer
 import com.netflix.spinnaker.clouddriver.huaweicloud.client.LoadBalancerClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.VirtualPrivateCloudClient
 import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import groovy.util.logging.Slf4j
 import static com.netflix.spinnaker.cats.agent.AgentDataType.Authority.AUTHORITATIVE
@@ -101,45 +100,45 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
       credentials.credentials.accessSecretKey,
       region
     )
-    VirtualPrivateCloudClient vpcClient = new VirtualPrivateCloudClient(
-      credentials.credentials.accessKeyId,
-      credentials.credentials.accessSecretKey,
-      region
-    )
 
     def lbSet = []
+    def lbIds = []
     if (loadBalancerId) {
       lbSet = client.getLoadBalancerById(loadBalancerId)
     } else {
       lbSet = client.getAllLoadBalancer()
     }
+    lbSet.each {
+      lbIds.add(it.getId())
+    }
 
-    def subnets = vpcClient.getSubnetsAll()
+    def poolSet = client.getAllPools(lbIds)
+    def listenerSet = client.getAllLBListener(lbIds)
+    def healthMonitorSet = client.getAllHealthMonitors()
+
     def loadBanancerList =  lbSet.collect {
       HuaweiCloudLoadBalancer loadBalancer = new HuaweiCloudLoadBalancer()
-      //get vpc
-      def subnetId = it.getVipSubnetId()
-      if (subnetId) {
-        loadBalancer.vpcId = subnets.find {
-          it.getNeutronSubnetId() == subnetId
-        }?.getVpcId()
-      }
       loadBalancer.region = region
       loadBalancer.accountName = accountName
       loadBalancer.name = it.getName()
       loadBalancer.loadBalancerName = it.getName()
       loadBalancer.id = it.getId()
       loadBalancer.loadBalancerId = it.getId()
-      loadBalancer.subnetId = subnetId
+      loadBalancer.subnetId = it.getVipSubnetCidrId()
+      loadBalancer.vpcId = it.getVpcId()
       loadBalancer.loadBalancerVip = it.getVipAddress()
       loadBalancer.createTime = it.getCreatedAt()
 
-      def listenerIds = []
-      it.getListeners().each {
-        listenerIds.add(it.getId())
+      def queryPools = []
+      it.getPools().each {
+        def poolId = it.getId()
+        def pool = poolSet.find {
+          it.getId() == poolId
+        }
+        if (pool) {
+          queryPools.add(pool)
+        }
       }
-
-      def queryPools = client.getAllPools(it.getId())
       def refinedPools = queryPools.collect {
         def pool = new HuaweiCloudLoadBalancerPool()
         pool.poolId = it.getId()
@@ -148,23 +147,35 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
       }
       loadBalancer.pools = refinedPools
 
-      def queryListeners = client.getAllLBListener(listenerIds)
+      def queryListeners = []
+      it.getListeners().each {
+        def listenerId = it.getId()
+        def listener = listenerSet.find {
+          it.getId() == listenerId
+        }
+        if (listener) {
+          queryListeners.add(listener)
+        }
+      }
+
+      def listenerIds = []
+      queryListeners.each {
+        listenerIds.add(it.getId())
+      }
+      def policySet = []
+      if (listenerIds.size() > 0) {
+        policySet = client.getAllL7policies(listenerIds)
+      }
+
       def listeners = queryListeners.collect {
         def listener = new HuaweiCloudLoadBalancerListener()
         listener.listenerId = it.getId()
-        def protocol = it.getProtocol().toString()
+        def protocol = it.getProtocol()
         if (protocol == "TERMINATED_HTTPS") {
           protocol = "HTTPS"
           listener.certificate = new HuaweiCloudLoadBalancerCertificate()
           listener.certificate.certId = it.getDefaultTlsContainerRef()
           listener.certificate.certCaId = it.getClientCaTlsContainerRef()
-          /*
-          if ( listener.certificate.certId && listener.certificate.certCaId ) {
-            listener.certificate.sslMode = "MUTUAL"
-          } else {
-            listener.certificate.sslMode = "UNIDIRECTIONAL"
-          }
-          */
         }
 
         listener.protocol = protocol
@@ -172,7 +183,7 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
         listener.listenerName = it.getName()
 
         if (protocol == "TCP" || protocol == "UDP") {
-          def pools = client.getAllPools(loadBalancer.loadBalancerId)
+          def pools = poolSet
           def listenerId = null
           for (int i = 0; i < pools.size(); i++) {
             listenerId = pools[i].getListeners().find {
@@ -182,15 +193,20 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
               def pool = pools[i]
               listener.poolId = pool.getId()
               if (pool.getHealthmonitorId()) {
-                def healthMonitor = client.getHealthMonitor(pool.getHealthmonitorId())
-                listener.healthCheck = new HuaweiCloudLoadBalancerHealthCheck()
-                listener.healthCheck.timeOut = healthMonitor.getTimeout()
-                listener.healthCheck.intervalTime = healthMonitor.getDelay()
-                listener.healthCheck.maxRetries = healthMonitor.getMaxRetries()
-                listener.healthCheck.httpCheckPath = healthMonitor.getUrlPath()
-                listener.healthCheck.httpCheckDomain = healthMonitor.getDomainName()
+                def healthMonitor = healthMonitorSet.find {
+                  it.getId() == pool.getHealthmonitorId()
+                }
+                if (healthMonitor) {
+                  listener.healthCheck = new HuaweiCloudLoadBalancerHealthCheck()
+                  listener.healthCheck.timeOut = healthMonitor.getTimeout()
+                  listener.healthCheck.intervalTime = healthMonitor.getDelay()
+                  listener.healthCheck.maxRetries = healthMonitor.getMaxRetries()
+                  listener.healthCheck.httpCheckPath = healthMonitor.getUrlPath()
+                  listener.healthCheck.httpCheckDomain = healthMonitor.getDomainName()
+                }
               }
 
+              // TODO: list all members API instead of pool specific.
               def members = client.getAllMembers(listener.poolId)
               listener.targets = members.collect {
                 def target = new HuaweiCloudLoadBalancerTarget()
@@ -205,7 +221,13 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
           }
         }
 
-        def policies = client.getAllL7policies(it.getId())
+        def policies = []
+        def listenerId = it.getId()
+        policySet.each {
+          if (it.getListenerId() == listenerId) {
+            policies.add(it)
+          }
+        }
         def rules = policies.collect() {
           def rule = new HuaweiCloudLoadBalancerRule()
           rule.policyId = it.getId()
@@ -213,13 +235,17 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
           if (rule.poolId) {
             def pool = client.getPool(rule.poolId)
             if (pool.getHealthmonitorId()) {
-              def healthMonitor = client.getHealthMonitor(pool.getHealthmonitorId())
-              rule.healthCheck = new HuaweiCloudLoadBalancerHealthCheck()
-              rule.healthCheck.timeOut = healthMonitor.getTimeout()
-              rule.healthCheck.intervalTime = healthMonitor.getDelay()
-              rule.healthCheck.maxRetries = healthMonitor.getMaxRetries()
-              rule.healthCheck.httpCheckPath = healthMonitor.getUrlPath()
-              rule.healthCheck.httpCheckDomain = healthMonitor.getDomainName()
+              def healthMonitor = healthMonitorSet.find {
+                it.getId() == pool.getHealthmonitorId()
+              }
+              if (healthMonitor) {
+                rule.healthCheck = new HuaweiCloudLoadBalancerHealthCheck()
+                rule.healthCheck.timeOut = healthMonitor.getTimeout()
+                rule.healthCheck.intervalTime = healthMonitor.getDelay()
+                rule.healthCheck.maxRetries = healthMonitor.getMaxRetries()
+                rule.healthCheck.httpCheckPath = healthMonitor.getUrlPath()
+                rule.healthCheck.httpCheckDomain = healthMonitor.getDomainName()
+              }
             }
 
             def members = client.getAllMembers(rule.poolId)
@@ -232,13 +258,16 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
             }
           }
 
+          // Comment this to reduce API calls
+          /*
           def l7Rules = client.getAllL7rules(it.getId())
           rule.domain = l7Rules.find {
-            it.getType().toString() == "HOST_NAME"
+            it.getType() == "HOST_NAME"
           }?.getValue()
           rule.url = l7Rules.find {
-            it.getType().toString() == "PATH"
+            it.getType() == "PATH"
           }?.getValue()
+          */
           rule
         }
 

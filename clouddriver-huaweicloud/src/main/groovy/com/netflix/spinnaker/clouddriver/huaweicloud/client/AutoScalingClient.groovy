@@ -70,7 +70,7 @@ class AutoScalingClient {
         sleep(5000)  // wait for a while before delete launch configuration
         log.error(e.toString())
         def request = new DeleteScalingConfigRequest()
-        request.setScalingGroupId(launchConfigurationId)
+        request.setScalingConfigurationId(launchConfigurationId)
         client.deleteScalingConfig(request)
         throw e
       }
@@ -412,6 +412,51 @@ class AutoScalingClient {
       body.setTopicScene(notification.getTopicScene())
       request.setBody(body)
       def response = client.createScalingNotification request
+      response
+    } catch (ServiceResponseException e) {
+      throw new HuaweiCloudOperationException(e.toString())
+    }
+  }
+
+  List<LifecycleHookList> getLifeCycleHook(String asgId=null) {
+    try {
+      def req = new ListLifeCycleHooksRequest()
+      if (asgId) {
+        req.setScalingGroupId(asgId)
+      }
+      def resp = client.listLifeCycleHooks req
+      resp.getLifecycleHooks()
+    } catch (ServiceResponseException e) {
+      throw new HuaweiCloudOperationException(e.getErrorMsg())
+    }
+  }
+
+  def createLifeCycleHook(String asgId, LifecycleHookList hook) {
+    try {
+      def request = new CreateLifyCycleHookRequest()
+      def body = new CreateLifeCycleHookRequestBody()
+      request.setScalingGroupId(asgId)
+      body.setLifecycleHookName(hook.getLifecycleHookName())
+      // Lifecycle Hook Type
+      def hookType = hook.getLifecycleHookType().toString()
+      body.setLifecycleHookType(CreateLifeCycleHookRequestBody.LifecycleHookTypeEnum.fromValue(hookType))
+      // Lifecycle Default Result
+      def defaultResult = hook.getDefaultResult().toString()
+      if (defaultResult) {
+        body.setDefaultResult(CreateLifeCycleHookRequestBody.DefaultResultEnum.fromValue(defaultResult))
+      }
+      // Default Timeout
+      if (hook.getDefaultTimeout()) {
+        body.setDefaultTimeout(hook.getDefaultTimeout())
+      }
+      // Topic Urn
+      body.setNotificationTopicUrn(hook.getNotificationTopicUrn())
+      // Metadata
+      if (hook.getNotificationMetadata()) {
+        body.setNotificationMetadata(hook.getNotificationMetadata())
+      }
+      request.setBody(body)
+      def response = client.createLifyCycleHook request
       response
     } catch (ServiceResponseException e) {
       throw new HuaweiCloudOperationException(e.toString())
