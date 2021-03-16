@@ -3,7 +3,7 @@ package com.netflix.spinnaker.clouddriver.huaweicloud.deploy.ops
 import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description.TerminateHuaweiCloudInstancesDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.HuaweiCloudClusterProvider
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,7 +31,7 @@ class TerminateHuaweiCloudInstancesAtomicOperation implements AtomicOperation<Vo
     task.updateStatus BASE_PHASE, "Initializing termination of instances (${description.instanceIds.join(", ")}) in " +
       "$description.region:$serverGroupName..."
 
-    def client = new ElasticCloudServerClient(
+    def client = new HuaweiElasticCloudServerClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region

@@ -13,10 +13,10 @@ import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
 @Slf4j
-class CloudEyeClient {
+class HuaweiCloudEyeClient {
   CesClient client
 
-  CloudEyeClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiCloudEyeClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://ces." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

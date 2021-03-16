@@ -16,11 +16,11 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAccessor
 
 @Slf4j
-class ElasticCloudServerClient {
+class HuaweiElasticCloudServerClient {
   private final DEFAULT_LIMIT = 100
   EcsClient client
 
-  ElasticCloudServerClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiElasticCloudServerClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://ecs." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

@@ -5,8 +5,8 @@ import com.netflix.spinnaker.clouddriver.model.Instance
 import com.netflix.spinnaker.clouddriver.model.ServerGroup
 import com.netflix.spinnaker.clouddriver.names.NamerRegistry
 import com.netflix.spinnaker.clouddriver.huaweicloud.HuaweiCloudProvider
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.moniker.Moniker
 
 class HuaweiCloudServerGroup implements ServerGroup, HuaweiCloudBasicResource {
@@ -49,7 +49,7 @@ class HuaweiCloudServerGroup implements ServerGroup, HuaweiCloudBasicResource {
 
   @Override
   Long getCreatedTime() {
-    def dateTime = ElasticCloudServerClient.ConvertIsoDateTime(asg.createdTime as String)
+    def dateTime = HuaweiElasticCloudServerClient.ConvertIsoDateTime(asg.createdTime as String)
     dateTime ? dateTime.time : null
   }
 

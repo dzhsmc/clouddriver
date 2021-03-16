@@ -4,8 +4,8 @@ import com.netflix.frigga.Names
 import com.netflix.spinnaker.clouddriver.helpers.AbstractServerGroupNameResolver
 import com.netflix.spinnaker.clouddriver.names.NamerRegistry
 import com.netflix.spinnaker.clouddriver.huaweicloud.HuaweiCloudProvider
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudBasicResource
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.HuaweiCloudClusterProvider
 import com.netflix.spinnaker.clouddriver.huaweicloud.security.HuaweiCloudNamedAccountCredentials
@@ -17,7 +17,7 @@ class HuaweiCloudServerGroupNameResolver extends AbstractServerGroupNameResolver
   private final String accountName
   private final String region
   private final HuaweiCloudClusterProvider huaweicloudClusterProvider
-  private final AutoScalingClient autoScalingClient
+  private final HuaweiAutoScalingClient autoScalingClient
   private final Namer namer
 
   HuaweiCloudServerGroupNameResolver(
@@ -33,7 +33,7 @@ class HuaweiCloudServerGroupNameResolver extends AbstractServerGroupNameResolver
       .withProvider(HuaweiCloudProvider.ID)
       .withAccount(accountName)
       .withResource(HuaweiCloudBasicResource)
-    this.autoScalingClient = new AutoScalingClient(
+    this.autoScalingClient = new HuaweiAutoScalingClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
@@ -65,7 +65,7 @@ class HuaweiCloudServerGroupNameResolver extends AbstractServerGroupNameResolver
 
       return serverGroupsInCluster.collect {
         def name = it.getScalingGroupName()
-        def date = ElasticCloudServerClient.ConvertIsoDateTime(it.getCreateTime().toString())
+        def date = HuaweiElasticCloudServerClient.ConvertIsoDateTime(it.getCreateTime().toString())
         new AbstractServerGroupNameResolver.TakenSlot(
             serverGroupName: name,
             sequence: Names.parseName(name).sequence,

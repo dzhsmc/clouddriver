@@ -6,7 +6,7 @@ import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.huaweicloud.cache.Keys
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ImageClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiImageClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudImage
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.MutableCacheData
 import groovy.transform.InheritConstructors
@@ -36,7 +36,7 @@ class HuaweiCloudImageCachingAgent extends AbstractHuaweiCloudCachingAgent {
       namespace -> []
     }
 
-    ImageClient imsClient = new ImageClient(
+    HuaweiImageClient imsClient = new HuaweiImageClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region

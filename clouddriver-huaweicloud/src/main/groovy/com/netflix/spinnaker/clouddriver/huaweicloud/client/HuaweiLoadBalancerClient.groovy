@@ -15,11 +15,11 @@ import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
 @Slf4j
-class LoadBalancerClient {
+class HuaweiLoadBalancerClient {
   private final DEFAULT_LIMIT = 100
   ElbClient client
 
-  LoadBalancerClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiLoadBalancerClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://elb." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

@@ -1,7 +1,7 @@
 package com.netflix.spinnaker.clouddriver.huaweicloud.controllers
 
 import com.netflix.spinnaker.clouddriver.security.AccountCredentialsProvider
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.HuaweiCloudClusterProvider
 import com.netflix.spinnaker.clouddriver.huaweicloud.security.HuaweiCloudNamedAccountCredentials
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,7 +41,7 @@ class HuaweiCloudServerGroupController {
     }
     def serverGroup = huaweicloudClusterProvider.getServerGroup(account, region, serverGroupName, false)
     String autoScalingGroupId = serverGroup.asg.autoScalingGroupId
-    def client = new AutoScalingClient(
+    def client = new HuaweiAutoScalingClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region

@@ -3,7 +3,7 @@ package com.netflix.spinnaker.clouddriver.huaweicloud.deploy.ops
 import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description.DestroyHuaweiCloudServerGroupDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.exception.HuaweiCloudOperationException
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudInstance
@@ -34,7 +34,7 @@ class DestroyHuaweiCloudServerGroupAtomicOperation implements AtomicOperation<Vo
     def accountName = description.accountName
     def serverGroupName = description.serverGroupName
 
-    def client = new AutoScalingClient(
+    def client = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region

@@ -7,7 +7,7 @@ import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.huaweicloud.cache.Keys
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudKeyPair
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.MutableCacheData
 import groovy.transform.InheritConstructors
@@ -35,7 +35,7 @@ class HuaweiCloudKeyPairCachingAgent extends AbstractHuaweiCloudCachingAgent {
       }
     }
 
-    ElasticCloudServerClient ecsClient = new ElasticCloudServerClient(
+    HuaweiElasticCloudServerClient ecsClient = new HuaweiElasticCloudServerClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region)
