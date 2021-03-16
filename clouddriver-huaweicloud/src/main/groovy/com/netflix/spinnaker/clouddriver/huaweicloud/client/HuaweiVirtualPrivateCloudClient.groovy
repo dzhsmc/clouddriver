@@ -14,11 +14,11 @@ import org.springframework.stereotype.Component
 
 @Component
 @Slf4j
-class VirtualPrivateCloudClient {
+class HuaweiVirtualPrivateCloudClient {
   private final DEFAULT_LIMIT = 100
   VpcClient client
 
-  VirtualPrivateCloudClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiVirtualPrivateCloudClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://vpc." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

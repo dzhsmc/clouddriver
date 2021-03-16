@@ -9,7 +9,7 @@ import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.cache.DefaultCacheData
 import com.netflix.spinnaker.cats.provider.ProviderCache
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.VirtualPrivateCloudClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiVirtualPrivateCloudClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudNetworkDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.HuaweiCloudInfrastructureProvider
 import com.netflix.spinnaker.clouddriver.huaweicloud.security.HuaweiCloudNamedAccountCredentials
@@ -64,7 +64,7 @@ class HuaweiCloudNetworkCachingAgent implements CachingAgent, AccountAware{
   }
 
   private Set<HuaweiCloudNetworkDescription> loadNetworksAll() {
-    VirtualPrivateCloudClient vpcClient = new VirtualPrivateCloudClient(
+    HuaweiVirtualPrivateCloudClient vpcClient = new HuaweiVirtualPrivateCloudClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region

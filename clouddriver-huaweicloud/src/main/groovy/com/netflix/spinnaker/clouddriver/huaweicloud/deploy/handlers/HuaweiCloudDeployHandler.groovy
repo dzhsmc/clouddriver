@@ -9,8 +9,8 @@ import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.HuaweiCloudServerGro
 import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description.HuaweiCloudDeployDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.exception.HuaweiCloudOperationException
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.HuaweiCloudClusterProvider
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.CloudEyeClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiCloudEyeClient
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -60,7 +60,7 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
 
     description.serverGroupName = serverGroupName
 
-    AutoScalingClient autoScalingClient = new AutoScalingClient(
+    HuaweiAutoScalingClient autoScalingClient = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region
@@ -120,7 +120,7 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
 
     task.updateStatus BASE_PHASE, "Initializing copy notification from $sourceAsgId."
 
-    AutoScalingClient autoScalingClient = new AutoScalingClient(
+    HuaweiAutoScalingClient autoScalingClient = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       sourceRegion
@@ -157,7 +157,7 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
 
     task.updateStatus BASE_PHASE, "Initializing copy lifecyclehook from $sourceAsgId."
 
-    AutoScalingClient autoScalingClient = new AutoScalingClient(
+    HuaweiAutoScalingClient autoScalingClient = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       sourceRegion
@@ -196,13 +196,13 @@ class HuaweiCloudDeployHandler implements DeployHandler<HuaweiCloudDeployDescrip
 
     task.updateStatus BASE_PHASE, "Initializing copy scaling policy from $sourceAsgId."
 
-    AutoScalingClient autoScalingClient = new AutoScalingClient(
+    HuaweiAutoScalingClient autoScalingClient = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       sourceRegion
     )
 
-    CloudEyeClient cloudEyeClient = new CloudEyeClient(
+    HuaweiCloudEyeClient cloudEyeClient = new HuaweiCloudEyeClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       sourceRegion

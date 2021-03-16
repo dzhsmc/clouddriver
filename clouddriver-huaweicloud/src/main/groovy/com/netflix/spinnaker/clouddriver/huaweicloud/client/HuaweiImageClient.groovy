@@ -14,11 +14,11 @@ import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
 @Slf4j
-class ImageClient {
+class HuaweiImageClient {
   private final DEFAULT_LIMIT = 100
   ImsClient client
 
-  ImageClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiImageClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://ims." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

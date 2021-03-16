@@ -13,8 +13,8 @@ import com.netflix.spinnaker.clouddriver.cache.OnDemandMetricsSupport
 import com.netflix.spinnaker.clouddriver.names.NamerRegistry
 import com.netflix.spinnaker.clouddriver.huaweicloud.HuaweiCloudProvider
 import com.netflix.spinnaker.clouddriver.huaweicloud.cache.Keys
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.LoadBalancerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiLoadBalancerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudBasicResource
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudInstance
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudServerGroup
@@ -65,7 +65,7 @@ class HuaweiCloudServerGroupCachingAgent extends AbstractHuaweiCloudCachingAgent
   CacheResult loadData(ProviderCache providerCache) {
     Long start = System.currentTimeMillis()
     log.info "start load data"
-    AutoScalingClient client = new AutoScalingClient(
+    HuaweiAutoScalingClient client = new HuaweiAutoScalingClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
@@ -216,8 +216,8 @@ class HuaweiCloudServerGroupCachingAgent extends AbstractHuaweiCloudCachingAgent
     }
   }
 
-  List<HuaweiCloudServerGroup> loadAsgAsServerGroup(AutoScalingClient client, String serverGroupName = null) {
-    LoadBalancerClient lbClient = new LoadBalancerClient(
+  List<HuaweiCloudServerGroup> loadAsgAsServerGroup(HuaweiAutoScalingClient client, String serverGroupName = null) {
+    HuaweiLoadBalancerClient lbClient = new HuaweiLoadBalancerClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
@@ -373,7 +373,7 @@ class HuaweiCloudServerGroupCachingAgent extends AbstractHuaweiCloudCachingAgent
   }
 
   /*
-  private List<Map> loadScalingPolicies(AutoScalingClient client, String autoScalingGroupId=null) {
+  private List<Map> loadScalingPolicies(HuaweiAutoScalingClient client, String autoScalingGroupId=null) {
     def scalingPolicies = client.getScalingPolicies autoScalingGroupId
     scalingPolicies.collect {
       Map<String, Object> asp = objectMapper.convertValue it, ATTRIBUTES
@@ -382,7 +382,7 @@ class HuaweiCloudServerGroupCachingAgent extends AbstractHuaweiCloudCachingAgent
   }
   */
 
-  private List<Map> loadAutoScalingInstances(AutoScalingClient client, String autoScalingGroupId=null) {
+  private List<Map> loadAutoScalingInstances(HuaweiAutoScalingClient client, String autoScalingGroupId=null) {
     def autoScalingInstances = client.getAutoScalingInstances autoScalingGroupId
     autoScalingInstances.collect {
       Map<String, Object> asi = objectMapper.convertValue it, ATTRIBUTES
@@ -396,7 +396,7 @@ class HuaweiCloudServerGroupCachingAgent extends AbstractHuaweiCloudCachingAgent
       return null
     }
     log.info("Enter huaweicloud server group agent handle " + data.serverGroupName)
-    AutoScalingClient client = new AutoScalingClient(
+    HuaweiAutoScalingClient client = new HuaweiAutoScalingClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region

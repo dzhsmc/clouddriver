@@ -13,14 +13,14 @@ import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
 @Slf4j
-class AutoScalingClient {
+class HuaweiAutoScalingClient {
   private final DEFAULT_LIMIT = 100
   private final MAX_TRY_COUNT = 60
   private final REQ_TRY_INTERVAL = 60 * 1000  //MillSeconds
   static String defaultServerGroupTagKey = "spinnaker-server-group-name"
   AsClient client
 
-  AutoScalingClient(String accessKeyId, String accessSecretKey, String region){
+  HuaweiAutoScalingClient(String accessKeyId, String accessSecretKey, String region){
     def auth = new BasicCredentials().withAk(accessKeyId).withSk(accessSecretKey)
     def regionId = new Region(region, "https://as." + region + ".myhuaweicloud.com")
     def config = HttpConfig.getDefaultHttpConfig()

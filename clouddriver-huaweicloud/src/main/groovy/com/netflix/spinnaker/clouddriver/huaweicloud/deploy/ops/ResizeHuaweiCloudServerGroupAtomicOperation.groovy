@@ -3,7 +3,7 @@ package com.netflix.spinnaker.clouddriver.huaweicloud.deploy.ops
 import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description.ResizeHuaweiCloudServerGroupDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.HuaweiCloudClusterProvider
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,7 +30,7 @@ class ResizeHuaweiCloudServerGroupAtomicOperation implements AtomicOperation<Voi
     def serverGroupName = description.serverGroupName
     def asgId = huaweicloudClusterProvider.getServerGroupAsgId(serverGroupName, accountName, region)
 
-    def client = new AutoScalingClient(
+    def client = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region

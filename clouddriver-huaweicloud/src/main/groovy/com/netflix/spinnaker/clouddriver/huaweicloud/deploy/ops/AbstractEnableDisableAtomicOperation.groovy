@@ -4,8 +4,8 @@ package com.netflix.spinnaker.clouddriver.huaweicloud.deploy.ops
 import com.netflix.spinnaker.clouddriver.data.task.Task
 import com.netflix.spinnaker.clouddriver.data.task.TaskRepository
 import com.netflix.spinnaker.clouddriver.orchestration.AtomicOperation
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.deploy.description.EnableDisableHuaweiCloudServerGroupDescription
 import groovy.transform.Canonical
 
@@ -26,13 +26,13 @@ abstract class AbstractEnableDisableAtomicOperation implements AtomicOperation<V
 
     def serverGroupName = description.serverGroupName
     def region = description.region
-    def client = new AutoScalingClient(
+    def client = new HuaweiAutoScalingClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region
     )
 
-    def ecsClient = new ElasticCloudServerClient(
+    def ecsClient = new HuaweiElasticCloudServerClient(
       description.credentials.credentials.accessKeyId,
       description.credentials.credentials.accessSecretKey,
       region
@@ -61,7 +61,7 @@ abstract class AbstractEnableDisableAtomicOperation implements AtomicOperation<V
     null
   }
 
-  private def getAutoScalingGroup(AutoScalingClient client, String serverGroupName) {
+  private def getAutoScalingGroup(HuaweiAutoScalingClient client, String serverGroupName) {
     def asgs = client.getAutoScalingGroupsByName serverGroupName
     if (asgs) {
       def asg = asgs[0]
@@ -74,7 +74,7 @@ abstract class AbstractEnableDisableAtomicOperation implements AtomicOperation<V
     }
   }
 
-  private void enableOrDisableAutoScalingGroup(AutoScalingClient client, String asgId) {
+  private void enableOrDisableAutoScalingGroup(HuaweiAutoScalingClient client, String asgId) {
     if (isDisable()) {
       task.updateStatus basePhase, "Disabling auto scaling group $asgId..."
       client.disableAutoScalingGroup asgId
@@ -86,7 +86,7 @@ abstract class AbstractEnableDisableAtomicOperation implements AtomicOperation<V
     }
   }
 
-  private def getInServiceAutoScalingInstances(AutoScalingClient client, String asgId) {
+  private def getInServiceAutoScalingInstances(HuaweiAutoScalingClient client, String asgId) {
     task.updateStatus basePhase, "Get instances managed by auto scaling group $asgId"
     def instances = client.getAutoScalingInstances asgId
 

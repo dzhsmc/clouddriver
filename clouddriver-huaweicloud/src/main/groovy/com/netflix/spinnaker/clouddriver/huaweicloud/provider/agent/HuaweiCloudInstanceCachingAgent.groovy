@@ -7,8 +7,8 @@ import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import com.netflix.spinnaker.cats.cache.CacheData
 import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.huaweicloud.cache.Keys
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.AutoScalingClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.ElasticCloudServerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiAutoScalingClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiElasticCloudServerClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudInstance
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudInstanceHealth
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.view.MutableCacheData
@@ -38,7 +38,7 @@ class HuaweiCloudInstanceCachingAgent extends AbstractHuaweiCloudCachingAgent {
       namespace -> [:].withDefault { id -> new MutableCacheData(id as String) }
     }
 
-    ElasticCloudServerClient ecsClient = new ElasticCloudServerClient(
+    HuaweiElasticCloudServerClient ecsClient = new HuaweiElasticCloudServerClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
@@ -48,7 +48,7 @@ class HuaweiCloudInstanceCachingAgent extends AbstractHuaweiCloudCachingAgent {
     result.each {
       def tags = ecsClient.getInstanceTags(it.getId())
       def serverGroupName = tags.find {
-        it.getKey() == AutoScalingClient.defaultServerGroupTagKey
+        it.getKey() == HuaweiAutoScalingClient.defaultServerGroupTagKey
       }?.getValue()
 
       // security groups
@@ -81,7 +81,7 @@ class HuaweiCloudInstanceCachingAgent extends AbstractHuaweiCloudCachingAgent {
 
       def launchTime = 0
       if (it.getOsSRVUSGLaunchedAt()) {
-        launchTime = ElasticCloudServerClient.ConvertIsoDateTime it.getOsSRVUSGLaunchedAt() + "Z"
+        launchTime = HuaweiElasticCloudServerClient.ConvertIsoDateTime it.getOsSRVUSGLaunchedAt() + "Z"
       }
       def huaweicloudInstance = new HuaweiCloudInstance(
         account: accountName,

@@ -28,7 +28,7 @@ import com.netflix.spinnaker.clouddriver.names.NamerRegistry
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudBasicResource
 import com.netflix.spinnaker.moniker.Moniker
 import com.netflix.spinnaker.moniker.Namer
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.LoadBalancerClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiLoadBalancerClient
 import com.netflix.spinnaker.cats.agent.DefaultCacheResult
 import groovy.util.logging.Slf4j
 import static com.netflix.spinnaker.cats.agent.AgentDataType.Authority.AUTHORITATIVE
@@ -95,7 +95,7 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
   }
 
   List<HuaweiCloudLoadBalancer> loadLoadBalancerData(String loadBalancerId = null) {
-    LoadBalancerClient client = new LoadBalancerClient(
+    HuaweiLoadBalancerClient client = new HuaweiLoadBalancerClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region

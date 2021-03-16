@@ -14,7 +14,7 @@ import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.cache.OnDemandAgent
 import com.netflix.spinnaker.clouddriver.cache.OnDemandMetricsSupport
 import com.netflix.spinnaker.clouddriver.huaweicloud.HuaweiCloudProvider
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.VirtualPrivateCloudClient
+import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiVirtualPrivateCloudClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudSecurityGroupDescription
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.HuaweiCloudSecurityGroupRule
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.HuaweiCloudInfrastructureProvider
@@ -134,7 +134,7 @@ class HuaweiCloudSecurityGroupCachingAgent implements CachingAgent, OnDemandAgen
   }
 
   private Set<HuaweiCloudSecurityGroupDescription> loadSecurityGroupAll() {
-    VirtualPrivateCloudClient vpcClient = new VirtualPrivateCloudClient(
+    HuaweiVirtualPrivateCloudClient vpcClient = new HuaweiVirtualPrivateCloudClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
@@ -215,7 +215,7 @@ class HuaweiCloudSecurityGroupCachingAgent implements CachingAgent, OnDemandAgen
   }
 
   private HuaweiCloudSecurityGroupDescription loadSecurityGroupById(String securityGroupId) {
-    VirtualPrivateCloudClient vpcClient = new VirtualPrivateCloudClient(
+    HuaweiVirtualPrivateCloudClient vpcClient = new HuaweiVirtualPrivateCloudClient(
       credentials.credentials.accessKeyId,
       credentials.credentials.accessSecretKey,
       region
