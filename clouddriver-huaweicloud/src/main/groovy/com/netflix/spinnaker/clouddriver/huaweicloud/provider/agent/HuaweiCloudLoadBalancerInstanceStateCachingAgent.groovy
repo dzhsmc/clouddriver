@@ -11,7 +11,6 @@ import com.netflix.spinnaker.cats.cache.DefaultCacheData
 import com.netflix.spinnaker.cats.provider.ProviderCache
 import com.netflix.spinnaker.clouddriver.core.provider.agent.HealthProvidingCachingAgent
 import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiLoadBalancerClient
-import com.netflix.spinnaker.clouddriver.huaweicloud.client.HuaweiVirtualPrivateCloudClient
 import com.netflix.spinnaker.clouddriver.huaweicloud.model.loadbalance.HuaweiCloudLoadBalancerTargetHealth
 import com.netflix.spinnaker.clouddriver.huaweicloud.provider.HuaweiCloudInfrastructureProvider
 import com.netflix.spinnaker.clouddriver.huaweicloud.security.HuaweiCloudNamedAccountCredentials
@@ -96,14 +95,9 @@ class HuaweiCloudLoadBalancerInstanceStateCachingAgent implements CachingAgent, 
       credentials.credentials.accessSecretKey,
       region
     )
-    HuaweiVirtualPrivateCloudClient vpcClient = new HuaweiVirtualPrivateCloudClient(
-      credentials.credentials.accessKeyId,
-      credentials.credentials.accessSecretKey,
-      region
-    )
 
     def poolSet = client.getAllPools()
-    def netPortSet = vpcClient.getAllPorts()
+    def memberHealths = client.getAllMembers()
     List<HuaweiCloudLoadBalancerTargetHealth> huaweicloudLBTargetHealths = []
     for (pool in poolSet) {
       def loadBalancerIds = pool.getLoadbalancers()
@@ -116,27 +110,21 @@ class HuaweiCloudLoadBalancerInstanceStateCachingAgent implements CachingAgent, 
       if (listenerIds.size() > 0) {
         listenerId = listenerIds[0].getId()
       }
+
       def poolId = pool.getId()
-      def memberHealths = client.getAllMembers(poolId)
       for (memberHealth in memberHealths) {
+        if (memberHealth.getPoolId() != poolId) {
+          continue
+        }
         def healthStatus = memberHealth.getOperatingStatus().equals("ONLINE") ? true : false
         def port = memberHealth.getProtocolPort()
-        def netPort = netPortSet.find {
-          def fixedIps = it.getFixedIps()
-          if (fixedIps.size() > 0) {
-            def fixedIp = fixedIps[0]
-            if (fixedIp.getIpAddress() == memberHealth.getAddress() &&
-              fixedIp.getSubnetId() == memberHealth.getSubnetCidrId()) {
-              return true
-            }
-          }
-        }
-        if (!netPort) {
+
+        def instanceId = memberHealth.getDeviceId()
+        if (!instanceId) {
           def memberId = memberHealth.getId()
           log.warn("The corresponding instance of member ${memberId} is not found")
           continue
         }
-        def instanceId = netPort.getDeviceId()
         def health = new HuaweiCloudLoadBalancerTargetHealth(instanceId:instanceId,
                     loadBalancerId:loadBalancerId, listenerId:listenerId, poolId:poolId,
                     healthStatus:healthStatus, port:port )

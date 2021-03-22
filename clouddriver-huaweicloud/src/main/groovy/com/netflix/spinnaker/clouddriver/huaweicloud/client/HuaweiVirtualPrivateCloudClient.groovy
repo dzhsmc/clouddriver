@@ -12,7 +12,6 @@ import com.huaweicloud.sdk.vpc.v2.model.*
 import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
-@Component
 @Slf4j
 class HuaweiVirtualPrivateCloudClient {
   private final DEFAULT_LIMIT = 100

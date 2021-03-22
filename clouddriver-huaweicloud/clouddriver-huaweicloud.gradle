@@ -22,13 +22,13 @@ dependencies {
   implementation "org.springframework.boot:spring-boot-actuator"
   implementation "org.springframework.boot:spring-boot-starter-web"
   implementation "com.google.guava:guava"
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-as:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-ces:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-core:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-ecs:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-elb:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-ims:3.0.29-beta'
-  implementation 'com.huaweicloud.sdk:huaweicloud-sdk-vpc:3.0.29-beta'
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-as:3.0.29-beta"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-ces:3.0.29-beta"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-core:3.0.29-beta"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-ecs:3.0.29-beta"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-elb:3.0.36-rc"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-ims:3.0.29-beta"
+  implementation "com.huaweicloud.sdk:huaweicloud-sdk-vpc:3.0.29-beta"
 
   testImplementation "cglib:cglib-nodep"
   testImplementation "org.assertj:assertj-core"

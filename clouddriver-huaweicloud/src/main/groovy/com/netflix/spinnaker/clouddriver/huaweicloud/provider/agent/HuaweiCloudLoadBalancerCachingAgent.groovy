@@ -115,6 +115,7 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
     def poolSet = client.getAllPools(lbIds)
     def listenerSet = client.getAllLBListener(lbIds)
     def healthMonitorSet = client.getAllHealthMonitors()
+    def membersSet = client.getAllMembers()
 
     def loadBanancerList =  lbSet.collect {
       HuaweiCloudLoadBalancer loadBalancer = new HuaweiCloudLoadBalancer()
@@ -206,8 +207,12 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
                 }
               }
 
-              // TODO: list all members API instead of pool specific.
-              def members = client.getAllMembers(listener.poolId)
+              def members = []
+              membersSet.each {
+                if (it.getPoolId() == listener.poolId) {
+                  members.add(it)
+                }
+              }
               listener.targets = members.collect {
                 def target = new HuaweiCloudLoadBalancerTarget()
                 target.instanceId = it.getId()
@@ -248,7 +253,12 @@ class HuaweiCloudLoadBalancerCachingAgent implements OnDemandAgent, CachingAgent
               }
             }
 
-            def members = client.getAllMembers(rule.poolId)
+            def members = []
+            membersSet.each {
+              if (it.getPoolId() == listener.poolId) {
+                members.add(it)
+              }
+            }
             rule.targets = members.collect {
               def target = new HuaweiCloudLoadBalancerTarget()
               target.instanceId = it.getId()
