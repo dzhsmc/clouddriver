@@ -37,8 +37,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listLoadBalancers(req)
       def loadBalancers = resp.getLoadbalancers()
       loadBalancerAll.addAll(loadBalancers)
-      while (loadBalancers.size() == DEFAULT_LIMIT) {
-        req.setMarker(loadBalancers[loadBalancers.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listLoadBalancers(req)
         loadBalancers = resp.getLoadbalancers()
         loadBalancerAll.addAll(loadBalancers)
@@ -89,8 +89,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listListeners(req)
       def listeners = resp.getListeners()
       listenerAll.addAll(listeners)
-      while (listeners.size() == DEFAULT_LIMIT) {
-        req.setMarker(listeners[listeners.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listListeners(req)
         listeners = resp.getListeners()
         listenerAll.addAll(listeners)
@@ -111,8 +111,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listL7Policies(req)
       def l7policies = resp.getL7policies()
       l7policiesAll.addAll(l7policies)
-      while (l7policies.size() == DEFAULT_LIMIT) {
-        req.setMarker(l7policies[l7policies.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listL7Policies(req)
         l7policies = resp.getL7policies()
         l7policiesAll.addAll(l7policies)
@@ -143,8 +143,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listPools(req)
       def pools = resp.getPools()
       poolsAll.addAll(pools)
-      while (pools.size() == DEFAULT_LIMIT) {
-        req.setMarker(pools[pools.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listPools(req)
         pools = resp.getPools()
         poolsAll.addAll(pools)
@@ -182,8 +182,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listHealthMonitors(req)
       def healthMonitors = resp.getHealthmonitors()
       healthMonitorsAll.addAll(healthMonitors)
-      while (healthMonitors.size() == DEFAULT_LIMIT) {
-        req.setMarker(healthMonitors[healthMonitors.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listHealthMonitors(req)
         healthMonitors = resp.getHealthmonitors()
         healthMonitorsAll.addAll(healthMonitors)
@@ -194,11 +194,20 @@ class HuaweiLoadBalancerClient {
     }
   }
 
-  List<Member> getAllMembers(String poolId) {
+  List<Member> getAllMembers() {
+    List<Member> membersAll = []
     try{
-      def req = new ListMembersRequest().withPoolId(poolId)
-      def resp = client.listMembers(req)
-      return resp.getMembers()
+      def req = new ListAllMembersRequest().withLimit(DEFAULT_LIMIT)
+      def resp = client.listAllMembers(req)
+      def members = resp.getMembers()
+      membersAll.addAll(members)
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
+        resp = client.listAllMembers(req)
+        members = resp.getMembers()
+        membersAll.addAll(members)
+      }
+      return membersAll
     } catch (ServiceResponseException e) {
       throw new HuaweiCloudOperationException(e.getErrorMsg())
     }
@@ -211,8 +220,8 @@ class HuaweiLoadBalancerClient {
       def resp = client.listPools(req)
       def pools = resp.getPools()
       poolsAll.addAll(pools)
-      while (pools.size() == DEFAULT_LIMIT) {
-        req.setMarker(pools[pools.size() - 1].getId())
+      while (resp.getPageInfo().getNextMarker()) {
+        req.setMarker(resp.getPageInfo().getNextMarker())
         resp = client.listPools(req)
         pools = resp.getPools()
         poolsAll.addAll(pools)
