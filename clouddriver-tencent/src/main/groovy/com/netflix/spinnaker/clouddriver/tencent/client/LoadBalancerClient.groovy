@@ -70,24 +70,19 @@ class LoadBalancerClient {
 
   List<LoadBalancer> getAllLoadBalancer() {
     List<LoadBalancer> loadBalancerAll = []
-    try{
       DescribeLoadBalancersRequest req = new DescribeLoadBalancersRequest();
       req.setLimit(DEFAULT_LIMIT)
       req.setForward(1)   //过滤应用型
-      DescribeLoadBalancersResponse resp = client.DescribeLoadBalancers(req);
-      loadBalancerAll.addAll(resp.getLoadBalancerSet())
-      def totalCount = resp.getTotalCount()
-      def getCount = DEFAULT_LIMIT
-      while (totalCount > getCount) {
-        req.setOffset(getCount)
-        DescribeLoadBalancersResponse respMore = client.DescribeLoadBalancers(req)
-        loadBalancerAll.addAll(respMore.getLoadBalancerSet())
-        getCount += respMore.getLoadBalancerSet().size()
+      while (true){
+          req.setOffset(loadBalancerAll.size())
+          DescribeLoadBalancersResponse respMore = client.DescribeLoadBalancers(req)
+          def loadBalancerSet = respMore.getLoadBalancerSet();
+          loadBalancerAll.addAll(loadBalancerSet)
+          if (loadBalancerSet.size() < DEFAULT_LIMIT){
+            break;
+          }
       }
-      return loadBalancerAll
-    } catch (TencentCloudSDKException e) {
-      throw new TencentOperationException(e.toString())
-    }
+    loadBalancerAll
   }
 
   List<LoadBalancer> getLoadBalancerByName(String name) {
