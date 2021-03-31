@@ -235,14 +235,11 @@ class AutoScalingClient extends AbstractTencentServiceClient {
   }
 
   List<AutoScalingGroup> getAllAutoScalingGroups() {
-    try {
-      DescribeAutoScalingGroupsRequest request = new DescribeAutoScalingGroupsRequest()
-      request.limit = DEFAULT_LIMIT
-      DescribeAutoScalingGroupsResponse response = client.DescribeAutoScalingGroups(request)
+    iterQuery { offset, limit ->
+      def request = new DescribeAutoScalingGroupsRequest(offset: offset, limit: limit)
+      def response = client.DescribeAutoScalingGroups request
       response.autoScalingGroupSet
-    } catch (TencentCloudSDKException e) {
-      throw new TencentOperationException(e.toString())
-    }
+    } as List<AutoScalingGroup>
   }
 
   List<AutoScalingGroup> getAutoScalingGroupsByName(String name) {
