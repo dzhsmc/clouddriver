@@ -14,6 +14,8 @@ import com.tencentcloudapi.common.profile.HttpProfile
 import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
 
+import java.util.stream.Collectors
+
 @Component
 @Slf4j
 class AutoScalingClient extends AbstractTencentServiceClient {
@@ -163,7 +165,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     def instanceTags = [spinnakerTag]
     if (description.instanceTags) {
       instanceTags.addAll description.instanceTags.collect {
-          new InstanceTag(key: it.key, value: it.value)
+        new InstanceTag(key: it.key, value: it.value)
       }
     }
     createLaunchConfigurationRequest.instanceTags = instanceTags
@@ -248,7 +250,8 @@ class AutoScalingClient extends AbstractTencentServiceClient {
       request.limit = DEFAULT_LIMIT
       request.filters = [new Filter(name: 'auto-scaling-group-name', values: [name])]
       DescribeAutoScalingGroupsResponse response = client.DescribeAutoScalingGroups(request)
-      response.autoScalingGroupSet
+      response.autoScalingGroupSet?.toList()?.stream()
+        ?.filter { autoScalingGroup -> (autoScalingGroup.getAutoScalingGroupName() == name) }?.collect(Collectors.toList());
     } catch (TencentCloudSDKException e) {
       throw new TencentOperationException(e.toString())
     }
@@ -262,8 +265,8 @@ class AutoScalingClient extends AbstractTencentServiceClient {
       request.limit = DEFAULT_LIMIT
 
       0.step len, DEFAULT_LIMIT, {
-        Integer endIndex = Math.min(len, it+DEFAULT_LIMIT)
-        request.launchConfigurationIds = launchConfigurationIds[it..endIndex-1]
+        Integer endIndex = Math.min(len, it + DEFAULT_LIMIT)
+        request.launchConfigurationIds = launchConfigurationIds[it..endIndex - 1]
 
         def response = client.DescribeLaunchConfigurations(request)
         launchConfigurations.addAll(response.launchConfigurationSet)
@@ -274,7 +277,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     }
   }
 
-  def getAutoScalingInstances(String asgId=null) {
+  def getAutoScalingInstances(String asgId = null) {
     iterQuery { offset, limit ->
       def request = new DescribeAutoScalingInstancesRequest(offset: offset, limit: limit)
       if (asgId) {
@@ -285,7 +288,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     } as List<Instance>
   }
 
-  def getAutoScalingActivitiesByAsgId(String asgId, Integer maxActivityNum=100) {
+  def getAutoScalingActivitiesByAsgId(String asgId, Integer maxActivityNum = 100) {
     iterQuery(maxActivityNum, { offset, limit ->
       def request = new DescribeAutoScalingActivitiesRequest(offset: offset, limit: limit)
       request.filters = [new Filter(name: 'auto-scaling-group-id', values: [asgId])]
@@ -303,7 +306,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
       request.desiredCapacity = capacity.desired
 
       client.ModifyAutoScalingGroup(request)
-    } catch(TencentCloudSDKException e) {
+    } catch (TencentCloudSDKException e) {
       throw new TencentOperationException(e.toString())
     }
   }
@@ -366,7 +369,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
       request.autoScalingGroupId = asgId
       DetachInstancesResponse response = client.DetachInstances(request)
       response
-    } catch(TencentCloudSDKException e) {
+    } catch (TencentCloudSDKException e) {
       throw new TencentOperationException(e.toString())
     }
   }
@@ -457,7 +460,8 @@ class AutoScalingClient extends AbstractTencentServiceClient {
           sleep(500)
         } else {
           throw new TencentCloudSDKException(e.toString())
-        }      }
+        }
+      }
     }
   }
 
@@ -535,7 +539,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     }
   }
 
-  def getScalingPolicies(String asgId=null) {
+  def getScalingPolicies(String asgId = null) {
     iterQuery { offset, limit ->
       def request = new DescribeScalingPoliciesRequest(offset: offset, limit: limit)
 
@@ -551,7 +555,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
   def deleteScalingPolicy(String aspId) {
     try {
       def request = new DeleteScalingPolicyRequest().with {
-        autoScalingPolicyId=aspId
+        autoScalingPolicyId = aspId
         it
       }
       def response = client.DeleteScalingPolicy(request)
@@ -601,7 +605,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     }
   }
 
-  def getScheduledAction(String asgId=null) {
+  def getScheduledAction(String asgId = null) {
     iterQuery { offset, limit ->
       def request = new DescribeScheduledActionsRequest(offset: offset, limit: limit)
 
@@ -627,7 +631,7 @@ class AutoScalingClient extends AbstractTencentServiceClient {
     }
   }
 
-  def getNotification(String asgId=null) {
+  def getNotification(String asgId = null) {
     iterQuery { offset, limit ->
       def request = new DescribeNotificationConfigurationsRequest(offset: offset, limit: limit)
 
@@ -643,9 +647,9 @@ class AutoScalingClient extends AbstractTencentServiceClient {
   def createNotification(String asgId, AutoScalingNotification notification) {
     try {
       def request = new CreateNotificationConfigurationRequest().with {
-        it.autoScalingGroupId=asgId
-        it.notificationUserGroupIds=notification.notificationUserGroupIds
-        it.notificationTypes=notification.notificationTypes
+        it.autoScalingGroupId = asgId
+        it.notificationUserGroupIds = notification.notificationUserGroupIds
+        it.notificationTypes = notification.notificationTypes
         it
       }
       def response = client.CreateNotificationConfiguration request
