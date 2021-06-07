@@ -64,6 +64,8 @@ public class BasicAliCloudDeployDescription extends BaseAliCloudDescription
   @JsonProperty("vSwitchIds")
   private List<String> vSwitchIds;
 
+  private Integer desiredCapacity;
+
   Capacity capacity = new Capacity();
   Source source = new Source();
 

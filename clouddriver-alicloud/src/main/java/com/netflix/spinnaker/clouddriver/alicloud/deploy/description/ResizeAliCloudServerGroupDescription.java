@@ -30,6 +30,8 @@ public class ResizeAliCloudServerGroupDescription extends BaseAliCloudDescriptio
 
   private Integer maxSize;
 
+  private Integer desiredCapacity;
+
   private Integer scaleNum;
 
   private LinkedHashMap<String, Integer> capacity;

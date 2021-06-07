@@ -60,6 +60,8 @@ public class ModifyScalingGroupDescription extends BaseAliCloudDescription {
 
   private List<ScalingGroup> scalingGroups;
 
+  private Integer desiredCapacity;
+
   @Data
   public static class ScalingGroup {
 

@@ -78,10 +78,10 @@ public class ResizeAliCloudServerGroupAtomicOperation implements AtomicOperation
         LinkedHashMap<String, Integer> capacity = description.getCapacity();
         modifyScalingGroupRequest.setMaxSize(capacity.get("max"));
         modifyScalingGroupRequest.setMinSize(capacity.get("min"));
-        modifyScalingGroupRequest.setDesiredCapacity(capacity.get("min"));
+        modifyScalingGroupRequest.setDesiredCapacity(
+            capacity.get("desired") != null ? capacity.get("desired") : capacity.get("min"));
         client.getAcsResponse(modifyScalingGroupRequest);
       }
-
     } catch (ServerException e) {
       log.info(e.getMessage());
       throw new AliCloudException(e.getMessage());
