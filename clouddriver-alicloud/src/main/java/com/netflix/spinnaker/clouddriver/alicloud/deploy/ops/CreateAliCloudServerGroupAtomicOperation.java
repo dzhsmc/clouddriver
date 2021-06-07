@@ -197,11 +197,11 @@ public class CreateAliCloudServerGroupAtomicOperation implements AtomicOperation
         }
         if (scalingGroup.getMinSize() != null) {
           request.setMinSize(scalingGroup.getMinSize());
-          request.setDesiredCapacity(scalingGroup.getMinSize());
         }
-        if (scalingGroup.getActiveCapacity() != null) {
-          request.setDesiredCapacity(scalingGroup.getActiveCapacity());
-        }
+        request.setDesiredCapacity(
+            scalingGroup.getDesiredCapacity() != null
+                ? scalingGroup.getDesiredCapacity()
+                : scalingGroup.getMinSize());
       } catch (Exception e) {
         log.info(e.getMessage());
         throw new AliCloudException(e.getMessage());
