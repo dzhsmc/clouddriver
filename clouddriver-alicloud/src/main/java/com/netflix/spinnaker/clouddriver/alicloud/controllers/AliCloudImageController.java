@@ -48,7 +48,7 @@ public class AliCloudImageController {
   @RequestMapping(value = "/find", method = RequestMethod.GET)
   List<Image> list(LookupOptions lookupOptions, HttpServletRequest request) {
     String glob = lookupOptions.getQ();
-    if (StringUtils.isAllBlank(glob) && glob.length() < 3) {
+    if (StringUtils.isAllBlank(glob) || glob.length() < 3) {
       throw new InvalidRequestException("Lost search condition or length less 3");
     }
     glob = "*" + glob + "*";
