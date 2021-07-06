@@ -40,6 +40,7 @@ class VirtualPrivateCloudClient {
   VirtualPrivateCloudClient(String secretId, String secretKey, String region){
     cred = new Credential(secretId, secretKey)
     client = new VpcClient(cred, region)
+    client.clientProfile.httpProfile.setReadTimeout(30)
   }
 
   String createSecurityGroup(String groupName, String groupDesc) {
