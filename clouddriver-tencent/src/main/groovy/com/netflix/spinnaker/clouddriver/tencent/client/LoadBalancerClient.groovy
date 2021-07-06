@@ -66,6 +66,7 @@ class LoadBalancerClient {
   LoadBalancerClient(String secretId, String secretKey, String region){
     cred = new Credential(secretId, secretKey)
     client = new ClbClient(cred, region)
+    client.clientProfile.httpProfile.setReadTimeout(30)
   }
 
   List<LoadBalancer> getAllLoadBalancer() {

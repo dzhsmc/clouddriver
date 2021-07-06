@@ -26,6 +26,7 @@ abstract class AbstractTencentServiceClient {
     cred = new Credential(secretId, secretKey)
     httpProfile = new HttpProfile()
     httpProfile.setEndpoint(endPoint)
+    httpProfile.setReadTimeout(30)
     clientProfile = new ClientProfile()
     clientProfile.setHttpProfile(httpProfile)
   }
